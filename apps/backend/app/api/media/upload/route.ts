@@ -28,16 +28,27 @@ export async function POST(req: NextRequest) {
     multiples: false,
   });
 
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
     form.parse(req as unknown as import('http').IncomingMessage, async (err, fields, files) => {
       if (err || !files.file) {
         return resolve(NextResponse.json({ error: 'Upload failed' }, { status: 400 }));
       }
 
       const file = Array.isArray(files.file) ? files.file[0] : files.file;
-      const inputPath = file.filepath;
-      const ext = path.extname(file.originalFilename || '');
-      const baseName = path.basename(file.newFilename, ext);
+
+      const fileObj = file as {
+        filepath?: string;
+        path?: string;
+        originalFilename?: string;
+        newFilename?: string;
+        name?: string;
+        mimetype?: string;
+        type?: string;
+      };
+
+      const inputPath = fileObj.filepath || fileObj.path;
+      const ext = path.extname(fileObj.originalFilename || fileObj.name || '');
+      const baseName = path.basename(fileObj.newFilename || fileObj.name || '', ext);
       const outputPath = path.join(uploadDir, `compressed-${baseName}.mp4`);
 
       try {
@@ -53,16 +64,22 @@ export async function POST(req: NextRequest) {
             .on('end', ffmpegResolve)
             .on('error', ffmpegReject);
         });
-        // determine file type (use mimetype when available, otherwise infer from extension)
-        const fileType = (file as any).mimetype || (ext ? `video/${ext.slice(1)}` : 'application/octet-stream');
 
-        // Insert into database (cast db to any to avoid TypeScript model mismatch; replace with correct model name if available)
-        await (db as any).media.create({
-            data: {
+        const fileType =
+          fileObj.mimetype || fileObj.type || (ext ? `video/${ext.slice(1)}` : 'application/octet-stream');
+
+        type DbWithMedia = {
+          media: {
+            create: (args: { data: { filename: string; type: string; url: string } }) => Promise<unknown>;
+          };
+        };
+
+        await (db as unknown as DbWithMedia).media.create({
+          data: {
             filename: `compressed-${baseName}.mp4`,
             type: fileType,
             url: `/uploads/compressed-${baseName}.mp4`,
-            },
+          },
         });
 
         return resolve(
@@ -71,7 +88,8 @@ export async function POST(req: NextRequest) {
             url: `/uploads/compressed-${baseName}.mp4`,
           })
         );
-      } catch (compressionError) {
+      } catch (err) {
+        console.error('Compression error:', err);
         return resolve(NextResponse.json({ error: 'Compression failed' }, { status: 500 }));
       }
     });
