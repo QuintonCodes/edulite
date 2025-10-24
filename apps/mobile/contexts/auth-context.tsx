@@ -1,13 +1,13 @@
 import { useQueryClient } from '@tanstack/react-query';
-import axios from 'axios';
+import axios, { isAxiosError } from 'axios';
 import * as SecureStore from 'expo-secure-store';
 import { createContext, useContext, useEffect, useState } from 'react';
 import { createStore, StoreApi, useStore } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
-import { useSessionQuery } from '@/hook/use-session';
+import { useSessionQuery } from '@/hooks/useSession';
 import { API_BASE } from '@/utils/constants';
-import type { RegisterInput, User } from '@/utils/types';
+import type { LoginResponse, RegisterInput, RegisterResponse, User } from '@/utils/types';
 
 type AuthStore = {
   user: User | null;
@@ -17,8 +17,8 @@ type AuthStore = {
   logout: () => Promise<void>;
   updateUser: (user?: Partial<User> | ((prev: User) => Partial<User>)) => void;
   refreshSession: () => Promise<void>;
-  register: (data: RegisterInput) => Promise<void>;
-  login: (email: string, password: string) => Promise<void>;
+  register: (data: RegisterInput) => Promise<{ user?: User; error?: string }>;
+  login: (email: string, password: string) => Promise<{ user?: User; error?: string }>;
 };
 
 const secureStorage = {
@@ -74,28 +74,39 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
           register: async (data) => {
             set({ isLoading: true });
             try {
-              const res = await axios.post(`${API_BASE}/auth/register`, data);
-              const { user, accessToken } = res.data;
+              const res = await axios.post<RegisterResponse>(`${API_BASE}/auth/register`, data);
+              const { user } = res.data;
 
-              await SecureStore.setItemAsync('accessToken', accessToken);
               set({ user, isAuthenticated: true, isLoading: false });
+              return { user };
             } catch (error: any) {
               set({ isLoading: false });
-              throw new Error(error.response?.data?.error || 'Registration failed');
+              const message = isAxiosError(error)
+                ? ((error.response?.data?.error as string | undefined) ?? error.message)
+                : error instanceof Error
+                  ? error.message
+                  : 'Registration failed';
+              return { error: message };
             }
           },
 
           login: async (email, password) => {
             set({ isLoading: true });
             try {
-              const res = await axios.post(`${API_BASE}/auth/login`, { email, password });
+              const res = await axios.post<LoginResponse>(`${API_BASE}/auth/login`, { email, password });
               const { user, accessToken } = res.data;
 
               await SecureStore.setItemAsync('accessToken', accessToken);
               set({ user, isAuthenticated: true, isLoading: false });
+              return { user };
             } catch (error: any) {
               set({ isLoading: false });
-              throw new Error(error.response?.data?.error || 'Login failed');
+              const message = isAxiosError(error)
+                ? ((error.response?.data?.error as string | undefined) ?? error.message)
+                : error instanceof Error
+                  ? error.message
+                  : 'Login failed';
+              return { error: message };
             }
           },
         }),

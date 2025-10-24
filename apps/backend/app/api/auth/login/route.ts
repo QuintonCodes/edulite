@@ -2,14 +2,24 @@ import { NextRequest, NextResponse } from 'next/server';
 
 import { comparePassword, generateAccessToken, generateRefreshToken } from '@/lib/auth';
 import { db } from '@/lib/db';
+import { z } from 'zod';
+
+const loginSchema = z.object({
+  email: z.string().email('Invalid email address'),
+  password: z.string().min(6, 'Password must be at least 6 characters'),
+});
 
 export async function POST(req: NextRequest) {
   try {
-    const { email, password } = await req.json();
+    const data = await req.json();
 
-    if (!email || !password) {
+    const validatedData = loginSchema.safeParse(data);
+
+    if (!validatedData.success) {
       return NextResponse.json({ error: 'Missing email or password' }, { status: 400 });
     }
+
+    const { email, password } = validatedData.data;
 
     const user = await db.user.findUnique({ where: { email } });
     if (!user) {
@@ -34,7 +44,7 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    return NextResponse.json({ message: 'Login successful', accessToken, refreshToken, user }, { status: 200 });
+    return NextResponse.json({ message: 'Login successful', accessToken, user }, { status: 200 });
   } catch (error) {
     console.error('Login error:', error);
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
