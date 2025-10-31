@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { useAuth } from '@/contexts/auth-context';
 import { useLanguageStore } from '@/hooks/useLanguageStore';
 const logo = require('../assets/images/logo-icon.png');
 
@@ -11,7 +12,8 @@ type Language = 'english' | 'afrikaans' | null;
 
 export default function Welcome() {
   const { selectedLanguage, setLanguage } = useLanguageStore();
-  const [errorMessage, setErrorMessage] = useState<string>('');
+  const { setUser } = useAuth();
+  const [errorMessage, setErrorMessage] = useState('');
 
   function handleLanguageSelect(language: Language) {
     setLanguage(language);
@@ -76,20 +78,26 @@ export default function Welcome() {
           </View>
 
           {/* Error Message */}
-          {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
+          {errorMessage && <Text style={styles.errorText}>{errorMessage}</Text>}
         </View>
 
         {/* Navigation Buttons */}
         <View style={styles.navigationSection}>
           <TouchableOpacity style={styles.primaryButton} onPress={() => handleNavigation('/login')}>
-            <Text style={styles.primaryButtonText}>Log In</Text>
+            <Text style={styles.primaryButtonText}>Login</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.secondaryButton} onPress={() => handleNavigation('/register')}>
-            <Text style={styles.secondaryButtonText}>Sign Up</Text>
+            <Text style={styles.secondaryButtonText}>Create account</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.guestButton} onPress={() => router.push('/')}>
+          <TouchableOpacity
+            style={styles.guestButton}
+            onPress={() => {
+              setUser(null);
+              router.push('/');
+            }}
+          >
             <Ionicons name="person-outline" size={16} color="#666" />
             <Text style={styles.guestButtonText}>Continue as Guest</Text>
           </TouchableOpacity>

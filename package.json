@@ -2,8 +2,7 @@
   "name": "edulite",
   "private": true,
   "workspaces": [
-    "apps/*",
-    "packages/*"
+    "apps/*"
   ],
   "scripts": {
     "start:mobile": "npm --workspace apps/mobile start",

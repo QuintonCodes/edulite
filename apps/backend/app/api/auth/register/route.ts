@@ -1,14 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
-
-import { hashPassword } from '@/lib/auth';
-import { db } from '@/lib/db';
 import { z } from 'zod';
+
+import { generateAndStoreOtp, hashPassword } from '@/lib/auth';
+import { db } from '@/lib/db';
+import { sendVerificationEmail } from '@/lib/email-service';
 
 const registerSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   email: z.string().email('Invalid email address'),
   password: z.string().min(6, 'Password must be at least 6 characters'),
-  language: z.string(),
+  language: z.string().min(1, 'Language is required'),
 });
 
 export async function POST(req: NextRequest) {
@@ -35,12 +36,19 @@ export async function POST(req: NextRequest) {
         email,
         password: hashedPassword,
         language,
+        isVerified: true,
       },
     });
 
+    const otpCode = await generateAndStoreOtp(email);
+    await sendVerificationEmail(otpCode, email);
+
     return NextResponse.json({ message: 'Account created successfully', user }, { status: 201 });
   } catch (error) {
-    console.error('Register error:', error);
-    return NextResponse.json({ error: 'Unexpected server error' }, { status: 500 });
+    console.error('POST Register error:', error);
+    if (error instanceof Error) {
+      return NextResponse.json({ error: error.message, stack: error.stack }, { status: 500 });
+    }
+    return NextResponse.json({ error: String(error) }, { status: 500 });
   }
 }

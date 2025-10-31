@@ -138,3 +138,39 @@ export function requireAuth(
     }
   };
 }
+
+export async function generateAndStoreOtp(email: string): Promise<string> {
+  const otpCode = Math.floor(1000 + Math.random() * 9000).toString();
+  const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+  await db.otpCode.deleteMany({ where: { email } });
+
+  await db.otpCode.create({
+    data: {
+      email,
+      code: otpCode,
+      expiresAt,
+      user: {
+        connect: { email: email },
+      },
+    },
+  });
+
+  return otpCode;
+}
+
+export async function validateOtp(email: string, code: string): Promise<boolean> {
+  const otp = await db.otpCode.findFirst({
+    where: {
+      email,
+      code,
+      expiresAt: { gt: new Date() },
+    },
+  });
+
+  if (!otp) return false;
+
+  await db.otpCode.delete({ where: { id: otp.id } });
+
+  return true;
+}

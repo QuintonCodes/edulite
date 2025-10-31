@@ -16,14 +16,13 @@ export async function GET(req: NextRequest) {
     const user = await db.user.findUnique({
       where: { id: payload.userId },
     });
-
     if (!user) {
       return NextResponse.json({ user: null, isAuthenticated: false }, { status: 401 });
     }
 
     return NextResponse.json({ user, isAuthenticated: true }, { status: 200 });
   } catch (error) {
-    console.error('Getting session error:', error);
+    console.error('GET Session error:', error);
     return NextResponse.json({ user: null, isAuthenticated: false }, { status: 401 });
   }
 }

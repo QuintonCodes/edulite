@@ -25,14 +25,10 @@ jobs:
       - name: Run lint (mobile + backend)
         run: npm run lint
 
-      - name: Check formatting with Prettier
+      - name: Run formatting with Prettier
         run: |
           echo "Checking formatting..."
-          npm run format:check || (
-            echo "❌ Code style issues found."
-            echo "👉 Run 'npm run format' locally to fix formatting before committing."
-            exit 1
-          )
+          npm run format
 
       - name: Run type check (mobile + backend)
         run: npm run type-check

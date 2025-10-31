@@ -16,7 +16,8 @@ export async function POST(req: NextRequest) {
     const validatedData = loginSchema.safeParse(data);
 
     if (!validatedData.success) {
-      return NextResponse.json({ error: 'Missing email or password' }, { status: 400 });
+      const errors = validatedData.error.flatten().fieldErrors;
+      return NextResponse.json({ error: errors }, { status: 400 });
     }
 
     const { email, password } = validatedData.data;
@@ -44,9 +45,12 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    return NextResponse.json({ message: 'Login successful', accessToken, user }, { status: 200 });
+    return NextResponse.json({ message: 'Login successful', accessToken, refreshToken, user }, { status: 200 });
   } catch (error) {
-    console.error('Login error:', error);
-    return NextResponse.json({ error: 'Server error' }, { status: 500 });
+    console.error('POST Login error:', error);
+    if (error instanceof Error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+    return NextResponse.json({ error: String(error) }, { status: 500 });
   }
 }

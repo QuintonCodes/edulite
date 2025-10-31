@@ -6,6 +6,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
 import Toast from 'react-native-toast-message';
 
+import { toastConfig } from '@/components/custom-toast';
 import AuthProvider from '@/contexts/auth-context';
 
 SplashScreen.preventAutoHideAsync();
@@ -39,14 +40,16 @@ export default function RootLayout() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <StatusBar style="auto" />
-        <Toast />
+        <StatusBar style="dark" />
         <Stack>
           <Stack.Screen name="welcome" options={{ headerShown: false }} />
           <Stack.Screen name="(auth)" options={{ headerShown: false }} />
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="tutorial/[id]" options={{ headerShown: false }} />
+          <Stack.Screen name="settings" options={{ headerShown: false }} />
+          <Stack.Screen name="edit-account" options={{ headerShown: false }} />
         </Stack>
+        <Toast config={toastConfig} />
       </AuthProvider>
     </QueryClientProvider>
   );
