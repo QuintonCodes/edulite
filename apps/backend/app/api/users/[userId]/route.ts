@@ -10,9 +10,9 @@ const editProfileSchema = z.object({
   role: z.enum(['student', 'teacher', 'admin']),
 });
 
-export async function PUT(req: Request, { params }: { params: { userId: string } }) {
+export async function PUT(req: Request, context: { params: { userId: string } }) {
   try {
-    const { userId } = params;
+    const { userId } = context.params;
     const data = await req.json();
 
     const validatedData = editProfileSchema.safeParse(data);
@@ -24,11 +24,7 @@ export async function PUT(req: Request, { params }: { params: { userId: string }
 
     const { name, email, password, role } = validatedData.data;
 
-    let hashedPassword = password;
-
-    if (password) {
-      hashedPassword = await hashPassword(password);
-    }
+    const hashedPassword = password ? await hashPassword(password) : undefined;
 
     const user = await db.user.update({
       where: { id: userId },
@@ -50,13 +46,12 @@ export async function PUT(req: Request, { params }: { params: { userId: string }
   }
 }
 
-export async function DELETE(req: Request, { params }: { params: { userId: string } }) {
+export async function DELETE(req: Request, context: { params: { userId: string } }) {
   try {
-    const { userId } = params;
+    const { userId } = context.params;
 
-    await db.user.delete({
-      where: { id: userId },
-    });
+    await db.user.delete({ where: { id: userId } });
+    await db.achievement.deleteMany({ where: { userId } });
 
     await db.achievement.deleteMany({
       where: { userId },
