@@ -1,6 +1,6 @@
 import { hashPassword } from '@/lib/auth';
 import { db } from '@/lib/db';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 
 const editProfileSchema = z.object({
@@ -10,10 +10,16 @@ const editProfileSchema = z.object({
   role: z.enum(['student', 'teacher', 'admin']),
 });
 
-export async function PUT(req: Request, context: { params: { userId: string } }) {
+export async function PUT(request: NextRequest) {
   try {
-    const { userId } = context.params;
-    const data = await req.json();
+    const url = new URL(request.url);
+    const userId = url.searchParams.get('userId');
+
+    if (!userId) {
+      return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
+    }
+
+    const data = await request.json();
 
     const validatedData = editProfileSchema.safeParse(data);
 
@@ -46,9 +52,14 @@ export async function PUT(req: Request, context: { params: { userId: string } })
   }
 }
 
-export async function DELETE(req: Request, context: { params: { userId: string } }) {
+export async function DELETE(request: NextRequest) {
   try {
-    const { userId } = context.params;
+    const url = new URL(request.url);
+    const userId = url.searchParams.get('userId');
+
+    if (!userId) {
+      return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
+    }
 
     await db.user.delete({ where: { id: userId } });
     await db.achievement.deleteMany({ where: { userId } });
