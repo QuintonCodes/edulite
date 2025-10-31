@@ -4,7 +4,7 @@ export const registerSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   email: z.string().email('Invalid email address'),
   password: z.string().min(6, 'Password must be at least 6 characters'),
-  language: z.string().nullable(),
+  language: z.string().min(1, 'Language is required'),
 });
 
 export type RegisterInput = z.infer<typeof registerSchema>;
@@ -21,9 +21,25 @@ export const loginSchema = z.object({
 
 export type LoginInput = z.infer<typeof loginSchema>;
 
+export const editProfileSchema = z.object({
+  name: z.string().min(1, 'Name is required'),
+  email: z.string().email('Invalid email address'),
+  password: z.string().min(6, 'Password must be at least 6 characters').optional(),
+  role: z.enum(['student', 'teacher', 'admin']),
+});
+
+export type EditProfileInput = z.infer<typeof editProfileSchema>;
+
+export const verifySchema = z.object({
+  otp: z.string().length(4, 'Please enter a valid 4-digit code').regex(/^\d+$/, 'Only digits are allowed'),
+});
+
+export type VerifyFormInput = z.infer<typeof verifySchema>;
+
 export type LoginResponse = {
   message: string;
   accessToken: string;
+  refreshToken: string;
   user: User;
 };
 
@@ -48,6 +64,7 @@ export type Tutorial = {
   duration: string;
   image: string;
   videoUrl: string;
+  objectives: string[];
   description: string;
   createdAt: string;
 };
@@ -56,7 +73,7 @@ export type Achievement = {
   id: string;
   icon: {
     name: string;
-    library: string;
+    library: 'Ionicons' | 'FontAwesome5' | 'MaterialCommunityIcons';
     color: string;
   };
   title: string;

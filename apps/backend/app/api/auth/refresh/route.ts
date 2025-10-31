@@ -54,7 +54,10 @@ export async function POST(req: NextRequest) {
       { status: 200 },
     );
   } catch (error) {
-    console.error('Refresh error:', error);
-    return NextResponse.json({ error: 'Server error' }, { status: 500 });
+    console.error('POST Refresh error:', error);
+    if (error instanceof Error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+    return NextResponse.json({ error: String(error) }, { status: 500 });
   }
 }

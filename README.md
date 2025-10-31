@@ -9,10 +9,15 @@ The goal of this README is to ensure every team member can set up the project lo
 
 ```arduino
 edulite/
+│── .github # GitHub workflows (CI/CD)
+│── .vscode
 │── apps/
 │ ├── mobile/ # Expo React Native app
 │ └── backend/ # Next.js API backend (no frontend)
-│── .github/ # GitHub workflows (CI/CD)
+│── .gitignore
+│── .prettierignore
+│── .prettierrc.json
+│── package-lock.json
 │── package.json # Root workspace configuration
 │── README.md # You're here!
 ```

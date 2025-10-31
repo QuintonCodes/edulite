@@ -1,24 +1,25 @@
 import { useQueryClient } from '@tanstack/react-query';
-import axios, { isAxiosError } from 'axios';
 import * as SecureStore from 'expo-secure-store';
 import { createContext, useContext, useEffect, useState } from 'react';
 import { createStore, StoreApi, useStore } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
 import { useSessionQuery } from '@/hooks/useSession';
-import { API_BASE } from '@/utils/constants';
-import type { LoginResponse, RegisterInput, RegisterResponse, User } from '@/utils/types';
+import { authService } from '@/utils/authService';
+import type { RegisterInput, User } from '@/utils/types';
 
 type AuthStore = {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   setUser: (user?: User | null) => void;
-  logout: () => Promise<void>;
   updateUser: (user?: Partial<User> | ((prev: User) => Partial<User>)) => void;
-  refreshSession: () => Promise<void>;
   register: (data: RegisterInput) => Promise<{ user?: User; error?: string }>;
   login: (email: string, password: string) => Promise<{ user?: User; error?: string }>;
+  logout: () => Promise<void>;
+  refreshSession: () => Promise<void>;
+  verify: (email: string, code: string) => Promise<{ user?: User; error?: string }>;
+  resendCode: (email: string) => Promise<{ success?: boolean; error?: string }>;
 };
 
 const secureStorage = {
@@ -48,17 +49,6 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
             });
           },
 
-          logout: async () => {
-            try {
-              await axios.post(`${API_BASE}/auth/logout`);
-            } finally {
-              set({ user: null, isAuthenticated: false, isLoading: false });
-
-              // Invalidate the session query so it re-fetches
-              get().refreshSession();
-            }
-          },
-
           updateUser: (user) => {
             const currentUser = get().user;
             if (!currentUser) return;
@@ -67,48 +57,56 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
             set({ user: { ...currentUser, ...updatedUser } });
           },
 
-          refreshSession: async () => {
-            await queryClient.invalidateQueries({ queryKey: ['session'] });
-          },
-
           register: async (data) => {
             set({ isLoading: true });
-            try {
-              const res = await axios.post<RegisterResponse>(`${API_BASE}/auth/register`, data);
-              const { user } = res.data;
+            const result = await authService.register(data);
 
-              set({ user, isAuthenticated: true, isLoading: false });
-              return { user };
-            } catch (error: any) {
+            if (result.user) {
+              set({ user: result.user, isAuthenticated: true, isLoading: false });
+            } else {
               set({ isLoading: false });
-              const message = isAxiosError(error)
-                ? ((error.response?.data?.error as string | undefined) ?? error.message)
-                : error instanceof Error
-                  ? error.message
-                  : 'Registration failed';
-              return { error: message };
             }
+
+            return result;
           },
 
           login: async (email, password) => {
             set({ isLoading: true });
-            try {
-              const res = await axios.post<LoginResponse>(`${API_BASE}/auth/login`, { email, password });
-              const { user, accessToken } = res.data;
+            const result = await authService.login(email, password);
 
-              await SecureStore.setItemAsync('accessToken', accessToken);
-              set({ user, isAuthenticated: true, isLoading: false });
-              return { user };
-            } catch (error: any) {
+            if (result.user) {
+              set({ user: result.user, isAuthenticated: true, isLoading: false });
+            } else {
               set({ isLoading: false });
-              const message = isAxiosError(error)
-                ? ((error.response?.data?.error as string | undefined) ?? error.message)
-                : error instanceof Error
-                  ? error.message
-                  : 'Login failed';
-              return { error: message };
             }
+
+            return result;
           },
+
+          logout: async () => {
+            await authService.logout();
+            set({ user: null, isAuthenticated: false, isLoading: false });
+            get().refreshSession();
+          },
+
+          refreshSession: async () => {
+            await queryClient.invalidateQueries({ queryKey: ['session'] });
+          },
+
+          verify: async (email: string, code: string) => {
+            set({ isLoading: true });
+            const result = await authService.verify(email, code);
+
+            if (result.user) {
+              set({ user: result.user, isAuthenticated: true, isLoading: false });
+            } else {
+              set({ isLoading: false });
+            }
+
+            return result;
+          },
+
+          resendCode: authService.resend,
         }),
         {
           name: 'edulite-user-storage',

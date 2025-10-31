@@ -9,6 +9,7 @@ type Tutorial = {
   duration: string;
   image: string;
   videoUrl: string;
+  objectives: string[];
   description: string;
   createdAt: string;
 };
@@ -23,6 +24,11 @@ const mockTutorials: Tutorial[] = [
     duration: '25 min',
     image: 'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=400',
     videoUrl: 'https://www.w3schools.com/html/mov_bbb.mp4',
+    objectives: [
+      'Understand basic algebraic concepts',
+      'Learn to solve linear equations',
+      'Apply algebra in real-world problems',
+    ],
     description: 'Learn how to solve linear equations step by step, with practical examples and exercises.',
     createdAt: '2025-10-20T08:30:00Z',
   },
@@ -35,6 +41,11 @@ const mockTutorials: Tutorial[] = [
     duration: '32 min',
     image: 'https://images.unsplash.com/photo-1532094349884-543bc11b234d?w=400',
     videoUrl: 'https://www.w3schools.com/html/mov_bbb.mp4',
+    objectives: [
+      'Explore different types of chemical bonds',
+      'Understand how atoms combine to form molecules',
+      'Analyze the properties of ionic, covalent, and metallic bonds',
+    ],
     description: 'Explore ionic, covalent and metallic bonds, with interactive quizzes and visualizations.',
     createdAt: '2025-10-18T10:15:00Z',
   },
@@ -47,6 +58,11 @@ const mockTutorials: Tutorial[] = [
     duration: '28 min',
     image: 'https://images.unsplash.com/photo-1461360370896-922624d12aa1?w=400',
     videoUrl: 'https://www.w3schools.com/html/mov_bbb.mp4',
+    objectives: [
+      'Trace the history of Ancient Rome',
+      'Understand key factors in Rome’s rise and fall',
+      'Examine the cultural and political legacy of Rome',
+    ],
     description: 'An in-depth look at Rome’s rise and fall, covering key emperors and major historical turning points.',
     createdAt: '2025-10-22T09:45:00Z',
   },
@@ -59,6 +75,11 @@ const mockTutorials: Tutorial[] = [
     duration: '45 min',
     image: 'https://images.unsplash.com/photo-1509228468518-180dd4864904?w=400',
     videoUrl: 'https://www.w3schools.com/html/mov_bbb.mp4',
+    objectives: [
+      'Understand the concept of derivatives',
+      'Learn differentiation techniques',
+      'Apply derivatives to solve real-world problems',
+    ],
     description: 'Dive into derivatives and real-world applications of calculus for engineers and scientists.',
     createdAt: '2025-10-19T14:50:00Z',
   },

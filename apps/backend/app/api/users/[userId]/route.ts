@@ -1,0 +1,73 @@
+import { hashPassword } from '@/lib/auth';
+import { db } from '@/lib/db';
+import { NextResponse } from 'next/server';
+import { z } from 'zod';
+
+const editProfileSchema = z.object({
+  name: z.string().min(1, 'Name is required'),
+  email: z.string().email('Invalid email address'),
+  password: z.string().min(6, 'Password must be at least 6 characters').optional(),
+  role: z.enum(['student', 'teacher', 'admin']),
+});
+
+export async function PUT(req: Request, { params }: { params: { userId: string } }) {
+  try {
+    const { userId } = params;
+    const data = await req.json();
+
+    const validatedData = editProfileSchema.safeParse(data);
+
+    if (!validatedData.success) {
+      const errors = validatedData.error.flatten().fieldErrors;
+      return NextResponse.json({ error: errors }, { status: 400 });
+    }
+
+    const { name, email, password, role } = validatedData.data;
+
+    let hashedPassword = password;
+
+    if (password) {
+      hashedPassword = await hashPassword(password);
+    }
+
+    const user = await db.user.update({
+      where: { id: userId },
+      data: {
+        name,
+        email,
+        password: hashedPassword,
+        role,
+      },
+    });
+
+    return NextResponse.json({ message: 'User updated successfully', user }, { status: 200 });
+  } catch (error) {
+    console.error('PUT /users/:userId error:', error);
+    if (error instanceof Error) {
+      return NextResponse.json({ error: error.message, stack: error.stack }, { status: 500 });
+    }
+    return NextResponse.json({ error: String(error) }, { status: 500 });
+  }
+}
+
+export async function DELETE(req: Request, { params }: { params: { userId: string } }) {
+  try {
+    const { userId } = params;
+
+    await db.user.delete({
+      where: { id: userId },
+    });
+
+    await db.achievement.deleteMany({
+      where: { userId },
+    });
+
+    return NextResponse.json({ message: 'User deleted successfully' }, { status: 200 });
+  } catch (error) {
+    console.error('DELETE /users/:userId error:', error);
+    if (error instanceof Error) {
+      return NextResponse.json({ error: error.message, stack: error.stack }, { status: 500 });
+    }
+    return NextResponse.json({ error: String(error) }, { status: 500 });
+  }
+}

@@ -1,9 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
-import axios from 'axios';
 
-import { getAccessToken } from '@/utils/api';
-import { API_BASE } from '@/utils/constants';
+import { apiFetch, getAccessToken } from '@/utils/api';
 import { User } from '@/utils/types';
+import { useEffect, useState } from 'react';
 
 type SessionResponse = {
   user: User | null;
@@ -11,19 +10,39 @@ type SessionResponse = {
 };
 
 export function useSessionQuery() {
+  const [token, setToken] = useState<string | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      const storedToken = await getAccessToken();
+      setToken(storedToken);
+    })();
+  }, []);
+
   return useQuery<SessionResponse>({
     queryKey: ['session'],
     queryFn: async () => {
-      const accessToken = await getAccessToken();
-      if (!accessToken) throw new Error('No access token');
+      if (!token) {
+        return { user: null, isAuthenticated: false };
+      }
 
-      const { data } = await axios.get<SessionResponse>(`${API_BASE}/auth/session`, {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
+      try {
+        const { data } = await apiFetch('/auth/session', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        return data;
+      } catch (error: any) {
+        // If refresh also failed, user is logged out
+        if (error.response?.status === 401) {
+          return { user: null, isAuthenticated: false };
+        }
 
-      return data;
+        throw error;
+      }
     },
+    enabled: !!token,
     staleTime: 1000 * 60 * 5, // 5 minutes
+    gcTime: 1000 * 60 * 10, // 10 minutes
     retry: false,
   });
 }
