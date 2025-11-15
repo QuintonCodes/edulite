@@ -54,23 +54,34 @@ export async function GET(request: NextRequest) {
     const completedLessonIds = new Set(completedProgress.map((p: { lessonId: string }) => p.lessonId));
 
     // 4. Map and calculate progress for each course
-    const coursesWithProgress = enrollments.map((enrollment) => {
-      const courseLessons = lessons.filter(
-        (l: { subjectId: string; id: string }) => l.subjectId === enrollment.subjectId,
-      );
-      const totalLessons = courseLessons.length;
+    const coursesWithProgress = enrollments.map(
+      (enrollment: {
+        subjectId: string;
+        subject: {
+          id: string;
+          createdAt: Date;
+          title: string;
+          description: string | null;
+          thumbnailUrl: string | null;
+        };
+      }) => {
+        const courseLessons = lessons.filter(
+          (l: { subjectId: string; id: string }) => l.subjectId === enrollment.subjectId,
+        );
+        const totalLessons = courseLessons.length;
 
-      const completedCount = courseLessons.filter((l: { id: string }) => completedLessonIds.has(l.id)).length;
+        const completedCount = courseLessons.filter((l: { id: string }) => completedLessonIds.has(l.id)).length;
 
-      const progress = totalLessons > 0 ? (completedCount / totalLessons) * 100 : 0;
+        const progress = totalLessons > 0 ? (completedCount / totalLessons) * 100 : 0;
 
-      return {
-        ...enrollment.subject, // All subject details (id, title, etc.)
-        progress: Math.round(progress),
-        totalLessons,
-        completedLessons: completedCount,
-      };
-    });
+        return {
+          ...enrollment.subject, // All subject details (id, title, etc.)
+          progress: Math.round(progress),
+          totalLessons,
+          completedLessons: completedCount,
+        };
+      },
+    );
 
     // Filter for only "in-progress" courses
     const inProgressCourses = coursesWithProgress.filter(
