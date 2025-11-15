@@ -38,7 +38,7 @@ export default function QuizScreen() {
   const [elapsedTime, setElapsedTime] = useState(0); // For live timer (in seconds)
   const [startTime, setStartTime] = useState<number | null>(null);
   const [endTime, setEndTime] = useState<number | null>(null);
-  const timerIntervalRef = useRef<number | null>(null);
+  const timerIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     if (quizData && !isLoading && !isError) {

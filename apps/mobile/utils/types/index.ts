@@ -92,7 +92,7 @@ export type User = {
 
 export type Tutorial = {
   id: string;
-  subject: 'Maths' | 'Science' | 'History';
+  subject: string;
   difficulty: 'Beginner' | 'Intermediate' | 'Advanced';
   title: string;
   instructor: string;

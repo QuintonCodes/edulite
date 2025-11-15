@@ -72,7 +72,7 @@ export function useVideoProgress({ videoUrl, tutorialId }: { videoUrl: string; t
   useEffect(() => {
     if (!playerRef.current || isReleasedRef.current || !tutorialId || isCompleted) return;
 
-    let checkReady: number | null = null;
+    let checkReady: ReturnType<typeof setInterval> | null = null;
 
     (async () => {
       try {
@@ -137,7 +137,7 @@ export function useVideoProgress({ videoUrl, tutorialId }: { videoUrl: string; t
   useEffect(() => {
     if (!playerRef.current || isReleasedRef.current) return;
 
-    let progressInterval: number | null = null;
+    let progressInterval: ReturnType<typeof setInterval> | null = null;
     let listenerRef: { remove: () => void } | null = null;
 
     function updateProgress() {

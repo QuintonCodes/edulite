@@ -1,7 +1,7 @@
 import { FontAwesome5, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -12,13 +12,22 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import * as Progress from 'react-native-progress';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAuth } from '@/contexts/auth-context';
 import { useTheme } from '@/contexts/theme-context';
 import { useTutorials } from '@/hooks/useTutorials';
 import { Colors, darkColors, lightColors } from '@/styles/theme';
-import { achievementData } from '@/utils/data';
+
+const subjectStyleMap: Record<string, { icon: any; library: any; color: string }> = {
+  Mathematics: { icon: 'math-compass', library: MaterialCommunityIcons, color: '#3b82f6' },
+  'Physical Sciences': { icon: 'atom', library: MaterialCommunityIcons, color: '#8b5cf6' },
+  'Life Sciences': { icon: 'leaf-outline', library: Ionicons, color: '#10b981' },
+  Geography: { icon: 'globe-outline', library: Ionicons, color: '#f59e0b' },
+  History: { icon: 'landmark', library: FontAwesome5, color: '#ec4899' },
+  Default: { icon: 'book', library: Ionicons, color: '#6b7280' },
+};
 
 export default function Home() {
   const { theme } = useTheme();
@@ -30,32 +39,59 @@ export default function Home() {
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
 
   const { user, isAuthenticated } = useAuth();
-  const { data: tutorials, isLoading, isError, refetch } = useTutorials(selectedSubject);
+  const { data: filteredTutorials, isLoading, isError, refetch } = useTutorials(selectedSubject);
+  const { data: allTutorials } = useTutorials('All');
 
-  const subjects = [
-    { label: 'All', icon: 'book', library: Ionicons, color: colors.accent },
-    { label: 'Maths', icon: 'math-compass', library: MaterialCommunityIcons, color: colors.accent },
-    { label: 'Science', icon: 'atom', library: MaterialCommunityIcons, color: '#8b5cf6' },
-    { label: 'History', icon: 'landmark', library: FontAwesome5, color: '#ec4899' },
-  ];
+  function useContinueLearning() {
+    if (!allTutorials || allTutorials.length < 2) {
+      return { lastWatchedTutorial: null, progress: 0 };
+    }
+    return { lastWatchedTutorial: allTutorials[1], progress: 0.6 }; // Returns "Newton's Laws" at 60%
+  }
+  const { lastWatchedTutorial, progress } = useContinueLearning();
+
+  const dynamicSubjects = useMemo(() => {
+    if (!allTutorials) return [];
+    // Get unique subject names
+    const subjects = [...new Set(allTutorials.map((t) => t.subject))];
+    // Map to the object structure our UI expects
+    const subjectButtons = subjects.map((subject) => {
+      const style = subjectStyleMap[subject] || subjectStyleMap.Default;
+      return { label: subject, ...style };
+    });
+    // Add "All" to the beginning
+    return [{ label: 'All', icon: 'book', library: Ionicons, color: colors.accent }, ...subjectButtons];
+  }, [allTutorials, colors.accent]);
+
+  const newlyAddedTutorials = useMemo(() => {
+    if (!allTutorials) return [];
+    // Sort by createdAt date (newest first) and take the top 5
+    return allTutorials.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, 5);
+  }, [allTutorials]);
 
   // Color mappings for UI
   const difficultyColors = {
-    Beginner: colors.success,
-    Intermediate: colors.warning,
-    Advanced: colors.danger,
+    'Grade 10': colors.success,
+    'Grade 11': colors.warning,
+    'Grade 12': colors.danger,
+    Beginner: colors.success, // Fallback
+    Intermediate: colors.warning, // Fallback
+    Advanced: colors.danger, // Fallback
   };
 
-  const subjectColors = {
-    Maths: colors.accent,
-    Science: '#8B5CF6',
+  const subjectColors: Record<string, string> = {
+    Mathematics: '#3b82f6',
+    'Physical Sciences': '#8B5CF6',
+    'Life Sciences': '#10b981',
+    Geography: '#f59e0b',
     History: '#EC4899',
+    Default: '#6b7280',
   };
 
   async function onRefresh() {
     setRefreshing(true);
     try {
-      refetch();
+      await refetch();
     } finally {
       setRefreshing(false);
     }
@@ -75,9 +111,7 @@ export default function Home() {
             {isAuthenticated ? `Welcome Back, ${user?.name}!` : 'Welcome to Edulite!'}
           </Text>
           <Text style={styles.headerSubtitle}>
-            {isAuthenticated
-              ? 'Continue your learning journey with personalized content.'
-              : 'Sign up or log in to unlock exclusive features.'}
+            {isAuthenticated ? 'Continue your learning journey.' : 'Sign up or log in to unlock exclusive features.'}
           </Text>
         </View>
 
@@ -95,12 +129,52 @@ export default function Home() {
         </TouchableOpacity>
       </View>
 
+      {isAuthenticated ? (
+        lastWatchedTutorial && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Continue Learning</Text>
+            <TouchableOpacity
+              style={styles.continueCard}
+              onPress={() => router.push(`/tutorial/${lastWatchedTutorial.id}`)}
+              activeOpacity={0.9}
+            >
+              <Image source={{ uri: lastWatchedTutorial.image }} style={styles.continueImage} />
+              <View style={styles.continueContent}>
+                <Text style={styles.continueSubject}>{lastWatchedTutorial.subject}</Text>
+                <Text style={styles.continueTitle} numberOfLines={2}>
+                  {lastWatchedTutorial.title}
+                </Text>
+                <View style={styles.continueProgress}>
+                  <Progress.Bar
+                    progress={progress}
+                    width={null}
+                    color={colors.accent}
+                    unfilledColor={colors.border}
+                    borderWidth={0}
+                    height={6}
+                    borderRadius={3}
+                  />
+                  <Text style={styles.continuePercent}>{Math.round(progress * 100)}%</Text>
+                </View>
+              </View>
+            </TouchableOpacity>
+          </View>
+        )
+      ) : (
+        <View style={styles.guestPrompt}>
+          <Text style={styles.guestPromptText}>Log in to track your achievements and save your progress!</Text>
+          <TouchableOpacity style={styles.loginButton} onPress={() => router.push('/login')}>
+            <Text style={styles.loginButtonText}>Log In</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
       {/* Subject Filter */}
       <View style={styles.filterContainer}>
         <Text style={styles.filterTitle}>Browse by Subject</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           <View style={styles.filterButtons}>
-            {subjects.map(({ label, icon, library: IconComp, color }) => (
+            {dynamicSubjects.map(({ label, icon, library: IconComp, color }) => (
               <TouchableOpacity
                 key={label}
                 style={[styles.filterButton, selectedSubject === label && styles.filterButtonActive]}
@@ -119,10 +193,10 @@ export default function Home() {
       </View>
 
       {/* Section Header */}
-      {!isLoading && !isError && tutorials && (
+      {!isLoading && !isError && filteredTutorials && (
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>All Tutorials</Text>
-          <Text style={styles.tutorialCount}>{tutorials.length} tutorials available</Text>
+          <Text style={styles.sectionTitle}>{selectedSubject === 'All' ? 'All Tutorials' : selectedSubject}</Text>
+          <Text style={styles.tutorialCount}>{filteredTutorials.length} tutorials available</Text>
         </View>
       )}
     </>
@@ -131,70 +205,36 @@ export default function Home() {
   // Footer component
   const ListFooterComponent = () => (
     <>
-      {/* Achievements Section */}
-      {isAuthenticated ? (
-        <View style={styles.achievementsSection}>
-          <Text style={styles.achievementsTitle}>Achievements</Text>
-          <Text style={styles.achievementsSubtitle}>
-            {achievementData.filter((a) => a.earned).length} of {achievementData.length} earned
-          </Text>
-          <View style={styles.achievementsList}>
-            {achievementData.map((achievement) => {
-              const { icon } = achievement;
-              const IconComponent =
-                icon.library === 'Ionicons'
-                  ? Ionicons
-                  : icon.library === 'FontAwesome5'
-                    ? FontAwesome5
-                    : MaterialCommunityIcons;
-
-              return (
-                <View
-                  key={achievement.id}
-                  style={[styles.achievementCard, !achievement.earned && styles.achievementCardLocked]}
-                >
-                  <IconComponent name={icon.name as any} size={24} color={icon.color} />
-                  <View style={{ flex: 1 }}>
-                    <Text style={[styles.achievementTitle, !achievement.earned && styles.achievementTitleLocked]}>
-                      {achievement.title}
-                    </Text>
-                    <Text style={styles.achievementSubtitle}>{achievement.subtitle}</Text>
-                  </View>
+      {/* Newly Added Section */}
+      {newlyAddedTutorials.length > 0 && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Newly Added</Text>
+          <FlatList
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            data={newlyAddedTutorials}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={{ gap: 12 }}
+            renderItem={({ item: tutorial }) => (
+              <TouchableOpacity
+                style={styles.newTutorialCard}
+                onPress={() => router.push(`/tutorial/${tutorial.id}`)}
+                activeOpacity={0.9}
+              >
+                <Image source={{ uri: tutorial.image }} style={styles.newTutorialImage} />
+                <View style={styles.newTutorialContent}>
+                  <Text style={styles.newTutorialSubject}>{tutorial.subject}</Text>
+                  <Text style={styles.newTutorialTitle} numberOfLines={2}>
+                    {tutorial.title}
+                  </Text>
                 </View>
-              );
-            })}
-          </View>
-        </View>
-      ) : (
-        <View style={styles.guestPrompt}>
-          <Text style={styles.guestPromptText}>Log in to track your achievements and unlock exclusive rewards!</Text>
-          <TouchableOpacity style={styles.loginButton} onPress={() => router.push('/login')}>
-            <Text style={styles.loginButtonText}>Log In</Text>
-          </TouchableOpacity>
+              </TouchableOpacity>
+            )}
+          />
         </View>
       )}
 
-      {/* Progress Stats */}
-      {isAuthenticated && (
-        <View style={styles.progressSection}>
-          <Text style={styles.progressTitle}>Your Progress</Text>
-          <View style={styles.statsGrid}>
-            {[
-              { label: 'Tutorials Completed', value: '12' },
-              { label: 'Hours Learned', value: '8.5h' },
-              { label: 'Current Streak', value: '5 days' },
-              { label: 'Average Score', value: '87%' },
-            ].map((s, i) => (
-              <View key={i} style={styles.statCard}>
-                <Text style={styles.statValue}>{s.value}</Text>
-                <Text style={styles.statLabel}>{s.label}</Text>
-              </View>
-            ))}
-          </View>
-        </View>
-      )}
-
-      <View style={{ height: 80 }} />
+      <View style={{ height: 120 }} />
     </>
   );
 
@@ -220,7 +260,7 @@ export default function Home() {
   }
 
   // Error state
-  if (isError || !tutorials) {
+  if (isError || !filteredTutorials) {
     return (
       <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
         <FlatList
@@ -245,7 +285,7 @@ export default function Home() {
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <FlatList
-        data={tutorials}
+        data={filteredTutorials}
         keyExtractor={(item) => item.id}
         ListHeaderComponent={ListHeaderComponent}
         ListFooterComponent={ListFooterComponent}
@@ -349,20 +389,19 @@ const getStyles = (colors: Colors) =>
       fontSize: 10,
     },
     filterContainer: {
-      borderBottomColor: colors.border,
-      borderBottomWidth: 1,
-      paddingHorizontal: 5,
-      paddingVertical: 16,
+      paddingTop: 24,
     },
     filterTitle: {
       color: colors.textPrimary,
       fontFamily: 'Poppins',
       fontSize: 16,
       marginBottom: 12,
+      paddingHorizontal: 5,
     },
     filterButtons: {
       flexDirection: 'row',
       gap: 8,
+      paddingHorizontal: 5,
     },
     filterButton: {
       backgroundColor: colors.secondary,
@@ -426,10 +465,58 @@ const getStyles = (colors: Colors) =>
       paddingHorizontal: 5,
       paddingTop: 24,
     },
+    section: {
+      paddingTop: 16,
+    },
     sectionTitle: {
       color: colors.textPrimary,
       fontFamily: 'Poppins',
       fontSize: 18,
+      marginBottom: 16,
+      paddingHorizontal: 5,
+    },
+    continueCard: {
+      backgroundColor: colors.primary,
+      borderRadius: 20,
+      elevation: 3,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 8,
+      flexDirection: 'row',
+      overflow: 'hidden',
+    },
+    continueImage: {
+      width: 100,
+      height: '100%',
+    },
+    continueContent: {
+      padding: 14,
+      flex: 1,
+      justifyContent: 'center',
+    },
+    continueSubject: {
+      fontFamily: 'Poppins',
+      fontSize: 12,
+      color: colors.accent,
+      marginBottom: 4,
+    },
+    continueTitle: {
+      fontFamily: 'Poppins',
+      fontSize: 15,
+      color: colors.textPrimary,
+      lineHeight: 22,
+      marginBottom: 12,
+    },
+    continueProgress: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    continuePercent: {
+      fontFamily: 'Poppins',
+      fontSize: 12,
+      color: colors.textSecondary,
     },
     tutorialCount: {
       color: colors.textSecondary,
@@ -504,55 +591,35 @@ const getStyles = (colors: Colors) =>
       fontSize: 12,
       flexShrink: 1,
     },
-    achievementsSection: {
-      marginTop: 28,
-      paddingHorizontal: 5,
+    newTutorialCard: {
+      backgroundColor: colors.primary,
+      borderRadius: 16,
+      elevation: 2,
+      overflow: 'hidden',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.08,
+      shadowRadius: 6,
+      width: 160, // Fixed width for horizontal list
     },
-    achievementsTitle: {
-      color: colors.textPrimary,
+    newTutorialImage: {
+      width: '100%',
+      height: 100,
+    },
+    newTutorialContent: {
+      padding: 10,
+    },
+    newTutorialSubject: {
       fontFamily: 'Poppins',
-      fontSize: 18,
-      marginBottom: 4,
-    },
-    achievementsSubtitle: {
-      color: colors.textSecondary,
-      fontFamily: 'Poppins_Regular',
-      fontSize: 14,
-      marginBottom: 16,
-    },
-    achievementsList: {
-      flex: 1,
-      gap: 12,
-    },
-    achievementCard: {
-      alignItems: 'center',
-      backgroundColor: '#fef3c7',
-      borderRadius: 20,
-      flexDirection: 'row',
-      padding: 14,
-      gap: 12,
-    },
-    achievementCardLocked: {
-      backgroundColor: colors.secondary,
-      opacity: 0.8,
-    },
-    achievementIcon: {
-      fontSize: 28,
-      marginRight: 14,
-    },
-    achievementTitle: {
-      fontSize: 15,
-      fontFamily: 'Poppins',
-      color: colors.textPrimary,
+      fontSize: 11,
+      color: colors.accent,
       marginBottom: 2,
     },
-    achievementTitleLocked: {
-      color: colors.textSecondary,
-    },
-    achievementSubtitle: {
+    newTutorialTitle: {
+      fontFamily: 'Poppins',
       fontSize: 13,
-      color: colors.textSecondary,
-      fontFamily: 'Poppins_Regular',
+      color: colors.textPrimary,
+      lineHeight: 18,
     },
     guestPrompt: {
       backgroundColor: colors.primary,
