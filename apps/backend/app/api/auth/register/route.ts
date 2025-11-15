@@ -10,6 +10,9 @@ const registerSchema = z.object({
   email: z.string().email('Invalid email address'),
   password: z.string().min(6, 'Password must be at least 6 characters'),
   language: z.string().min(1, 'Language is required'),
+  role: z.enum(['student', 'teacher'], {
+    required_error: 'Please select a role',
+  }),
 });
 
 export async function POST(req: NextRequest) {
@@ -23,7 +26,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: errors }, { status: 400 });
     }
 
-    const { name, email, password, language } = validatedData.data;
+    const { name, email, password, language, role } = validatedData.data;
 
     const existingUser = await db.user.findUnique({ where: { email } });
     if (existingUser) return NextResponse.json({ error: 'Email already registered' }, { status: 409 });
@@ -36,7 +39,7 @@ export async function POST(req: NextRequest) {
         email,
         password: hashedPassword,
         language,
-        isVerified: true,
+        role,
       },
     });
 

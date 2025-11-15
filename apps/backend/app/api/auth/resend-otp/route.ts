@@ -24,18 +24,26 @@ export async function POST(req: Request) {
 
     const { email } = validated.data;
 
-    // ✅ Check if user exists
+    // Check if user exists
     const user = await db.user.findUnique({ where: { email } });
     if (!user) {
       return NextResponse.json({ error: 'User not found.' }, { status: 404 });
     }
 
-    if (!user.isVerified) {
-      return NextResponse.json({ error: 'Email is already verified' }, { status: 404 });
+    // Check if already verified
+    if (user.isVerified) {
+      return NextResponse.json({ error: 'Email is already verified' }, { status: 400 });
     }
 
+    await db.otpCode.deleteMany({
+      where: {
+        email,
+        used: false,
+      },
+    });
+
     const otpCode = await generateAndStoreOtp(email);
-    await sendVerificationEmail(email, otpCode);
+    await sendVerificationEmail(otpCode, email);
 
     return NextResponse.json({ message: 'Verification code sent successfully' }, { status: 200 });
   } catch (error) {

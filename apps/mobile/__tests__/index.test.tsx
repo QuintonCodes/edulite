@@ -5,7 +5,7 @@ import React from 'react';
 import Home from '@/app/(tabs)';
 import { useAuth } from '@/contexts/auth-context';
 import { useTutorials } from '@/hooks/useTutorials';
-import { renderWithClient } from '@/utils/test-utils';
+import { renderWithClient } from '@/utils/test';
 
 jest.mock('expo-router', () => ({
   router: { push: jest.fn() },
@@ -31,6 +31,17 @@ jest.mock('expo-image', () => ({
 
 jest.mock('react-native-safe-area-context', () => ({
   SafeAreaView: ({ children }: any) => children,
+}));
+
+jest.mock('@/contexts/theme-context', () => ({
+  // Mock the Provider to just render its children without any async logic
+  ThemeProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  // Mock the hook to return a stable, default value
+  useTheme: () => ({
+    theme: 'light', // Or 'dark', whichever you prefer for tests
+    setTheme: jest.fn(),
+    isThemeLoading: false, // Critically, set loading to false
+  }),
 }));
 
 const mockTutorials = [

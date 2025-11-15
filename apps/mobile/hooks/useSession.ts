@@ -1,8 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
-
-import { apiFetch, getAccessToken } from '@/utils/api';
-import { User } from '@/utils/types';
 import { useEffect, useState } from 'react';
+
+import { apiFetch, getAccessToken } from '@/utils/apiClient';
+import { User } from '@/utils/types';
 
 type SessionResponse = {
   user: User | null;
