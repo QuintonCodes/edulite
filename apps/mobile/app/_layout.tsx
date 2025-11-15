@@ -7,7 +7,9 @@ import { useEffect, useState } from 'react';
 import Toast from 'react-native-toast-message';
 
 import { toastConfig } from '@/components/custom-toast';
-import AuthProvider from '@/contexts/auth-context';
+import { AuthProvider } from '@/contexts/auth-context';
+import { ThemeProvider, useTheme } from '@/contexts/theme-context';
+import { darkColors, lightColors } from '@/styles/theme';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -39,18 +41,38 @@ export default function RootLayout() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <StatusBar style="dark" />
-        <Stack>
-          <Stack.Screen name="welcome" options={{ headerShown: false }} />
-          <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="tutorial/[id]" options={{ headerShown: false }} />
-          <Stack.Screen name="settings" options={{ headerShown: false }} />
-          <Stack.Screen name="edit-account" options={{ headerShown: false }} />
-        </Stack>
-        <Toast config={toastConfig} />
-      </AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <RootLayoutNav />
+          <Toast config={toastConfig} />
+        </AuthProvider>
+      </ThemeProvider>
     </QueryClientProvider>
+  );
+}
+
+function RootLayoutNav() {
+  const { theme } = useTheme();
+  const colors = theme === 'dark' ? darkColors : lightColors;
+
+  return (
+    <>
+      <StatusBar style={theme === 'dark' ? 'light' : 'dark'} />
+      <Stack
+        screenOptions={{
+          contentStyle: { backgroundColor: colors.background },
+        }}
+      >
+        <Stack.Screen name="welcome" options={{ headerShown: false }} />
+        <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="tutorial/[id]" options={{ headerShown: false }} />
+        <Stack.Screen name="quiz/[id]" options={{ headerShown: false }} />
+        <Stack.Screen name="settings" options={{ headerShown: false }} />
+        <Stack.Screen name="edit-account" options={{ headerShown: false }} />
+        <Stack.Screen name="notifications" options={{ headerShown: false }} />
+        <Stack.Screen name="modal/pdf-viewer" options={{ headerShown: false, presentation: 'modal' }} />
+      </Stack>
+    </>
   );
 }

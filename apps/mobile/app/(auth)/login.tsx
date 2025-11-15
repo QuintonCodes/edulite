@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { router } from 'expo-router';
+import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -11,6 +12,7 @@ import { LoginInput, loginSchema } from '@/utils/types';
 
 export default function Login() {
   const { login: loginUser } = useAuth();
+  const [showPassword, setShowPassword] = useState(false);
 
   const {
     control,
@@ -44,7 +46,7 @@ export default function Login() {
       Toast.show({
         type: 'success',
         text1: 'Login Successful',
-        text2: 'Welcome EduLite !',
+        text2: 'Welcome EduLite!',
       });
 
       reset();
@@ -62,16 +64,16 @@ export default function Login() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* 🔙 Back Button */}
+      {/* Back Button */}
       <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
         <Ionicons name="arrow-back" size={24} color="#4285F4" />
       </TouchableOpacity>
+
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        {/* 🎯 Header */}
         <View style={styles.header}>
           <Text style={styles.title}>Welcome Back!</Text>
           <Text style={styles.subtitle}>Sign in to continue your learning</Text>
@@ -79,45 +81,52 @@ export default function Login() {
 
         <View style={styles.form}>
           {/* Email Input */}
-          <View style={styles.inputContainer}>
-            <Ionicons name="mail-outline" size={20} color="#666" style={{ marginRight: 10 }} />
-            <Controller
-              control={control}
-              name="email"
-              render={({ field: { onChange, onBlur, value } }) => (
-                <TextInput
-                  autoCapitalize="none"
-                  placeholder="Email Address"
-                  placeholderTextColor="#999"
-                  keyboardType="email-address"
-                  style={styles.input}
-                  onChangeText={onChange}
-                  onBlur={onBlur}
-                  value={value}
-                />
-              )}
-            />
+          <View>
+            <View style={[styles.inputContainer, errors.email && styles.inputContainerError]}>
+              <Ionicons name="mail-outline" size={20} color="#666" style={styles.icon} />
+              <Controller
+                control={control}
+                name="email"
+                render={({ field: { onChange, onBlur, value } }) => (
+                  <TextInput
+                    autoCapitalize="none"
+                    keyboardType="email-address"
+                    onChangeText={onChange}
+                    onBlur={onBlur}
+                    placeholder="Email Address"
+                    placeholderTextColor="#999"
+                    style={styles.input}
+                    value={value}
+                  />
+                )}
+              />
+            </View>
             {errors.email && <Text style={styles.errorText}>{errors.email.message}</Text>}
           </View>
 
           {/* Password Input */}
-          <View style={styles.inputContainer}>
-            <Ionicons name="lock-closed-outline" size={20} color="#666" style={{ marginRight: 10 }} />
-            <Controller
-              control={control}
-              name="password"
-              render={({ field: { onChange, onBlur, value } }) => (
-                <TextInput
-                  placeholder="Password"
-                  placeholderTextColor="#999"
-                  value={value}
-                  onChangeText={onChange}
-                  onBlur={onBlur}
-                  secureTextEntry
-                  style={styles.input}
-                />
-              )}
-            />
+          <View>
+            <View style={[styles.inputContainer, errors.password && styles.inputContainerError]}>
+              <Ionicons name="lock-closed-outline" size={20} color="#666" style={styles.icon} />
+              <Controller
+                control={control}
+                name="password"
+                render={({ field: { onChange, onBlur, value } }) => (
+                  <TextInput
+                    onBlur={onBlur}
+                    onChangeText={onChange}
+                    placeholder="Password"
+                    placeholderTextColor="#999"
+                    secureTextEntry={!showPassword}
+                    style={styles.input}
+                    value={value}
+                  />
+                )}
+              />
+              <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeButton}>
+                <Ionicons name={showPassword ? 'eye-outline' : 'eye-off-outline'} size={20} color="#666" />
+              </TouchableOpacity>
+            </View>
             {errors.password && <Text style={styles.errorText}>{errors.password.message}</Text>}
           </View>
 
@@ -182,7 +191,7 @@ const styles = StyleSheet.create({
     marginBottom: 40,
   },
   title: {
-    color: '#1976D2',
+    color: '#1976d2',
     fontFamily: 'Poppins',
     fontSize: 24,
     marginBottom: 4,
@@ -206,6 +215,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     elevation: 2,
+    flex: 1,
     flexDirection: 'row',
     height: 54,
     paddingHorizontal: 14,
@@ -214,6 +224,13 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 4,
   },
+  inputContainerError: {
+    borderColor: '#e53e3e',
+    borderWidth: 1.5,
+  },
+  icon: {
+    marginRight: 10,
+  },
   input: {
     color: '#333',
     flex: 1,
@@ -221,20 +238,30 @@ const styles = StyleSheet.create({
     fontSize: 16,
     paddingVertical: 0,
   },
+  eyeButton: {
+    padding: 4,
+    marginLeft: 4,
+  },
   errorText: {
     color: '#e53e3e',
-    fontFamily: 'Poppins',
-    fontSize: 13,
-    marginTop: 4,
+    fontFamily: 'Poppins_Regular',
+    fontSize: 12,
+    marginTop: 6,
+    paddingHorizontal: 4,
   },
   serverError: {
-    color: '#e53e3e',
-    fontFamily: 'Poppins',
-    marginTop: 8,
+    backgroundColor: '#fee2e2',
+    borderRadius: 8,
+    color: '#991b1b',
+    fontFamily: 'Poppins_Regular',
+    fontSize: 13,
+    marginTop: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
     textAlign: 'center',
   },
   forgotPassword: {
-    color: '#4285F4',
+    color: '#4285f4',
     fontFamily: 'Poppins_Regular',
     fontSize: 14,
     textAlign: 'right',

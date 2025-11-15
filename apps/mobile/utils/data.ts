@@ -1,6 +1,4 @@
-import { Achievement } from './types';
-
-export const achievementData: Achievement[] = [
+export const achievementData = [
   {
     id: '1',
     icon: { name: 'trophy', library: 'FontAwesome5', color: '#facc15' },
@@ -28,5 +26,33 @@ export const achievementData: Achievement[] = [
     title: 'Speed Learner',
     subtitle: 'Complete a tutorial in under 20 min',
     earned: false,
+  },
+];
+
+export type QuizQuestion = {
+  id: number;
+  question: string;
+  options: string[];
+  correctAnswer: number;
+};
+
+export const sampleQuizQuestions: QuizQuestion[] = [
+  {
+    id: 1,
+    question: 'What was the main topic covered in this tutorial?',
+    options: ['Option 1', 'Option 2', 'Option 3', 'Option 4'],
+    correctAnswer: 0,
+  },
+  {
+    id: 2,
+    question: 'Which of the following is a key concept?',
+    options: ['Concept A', 'Concept B', 'Concept C', 'Concept D'],
+    correctAnswer: 1,
+  },
+  {
+    id: 3,
+    question: 'How would you apply what you learned?',
+    options: ['Application 1', 'Application 2', 'Application 3', 'Application 4'],
+    correctAnswer: 2,
   },
 ];

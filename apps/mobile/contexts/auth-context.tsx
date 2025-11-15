@@ -5,7 +5,7 @@ import { createStore, StoreApi, useStore } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
 import { useSessionQuery } from '@/hooks/useSession';
-import { authService } from '@/utils/authService';
+import { authService } from '@/utils/apiService';
 import type { RegisterInput, User } from '@/utils/types';
 
 type AuthStore = {
@@ -30,7 +30,7 @@ const secureStorage = {
 
 const AuthContext = createContext<StoreApi<AuthStore> | undefined>(undefined);
 
-export default function AuthProvider({ children }: { children: React.ReactNode }) {
+export function AuthProvider({ children }: { children: React.ReactNode }) {
   const queryClient = useQueryClient();
 
   const [store] = useState(() =>

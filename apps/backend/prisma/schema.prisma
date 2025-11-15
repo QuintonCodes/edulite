@@ -26,6 +26,24 @@ model User {
   updatedAt  DateTime  @updatedAt
   lastLogin  DateTime?
 
+  // XP and Level System
+  xp                Int       @default(0)
+  level             Int       @default(1)
+
+  // User Stats
+  coursesCompleted  Int       @default(0)
+  lessonsCompleted  Int       @default(0)
+  quizzesCompleted  Int       @default(0)
+  perfectQuizzes    Int       @default(0)
+  streak            Int       @default(0)
+  loginStreak       Int       @default(0)
+  maxLessonsInDay   Int       @default(0)
+  nightLessons      Int       @default(0)
+
+  // Achievement tracking
+  earnedAchievements String[]  @default([])
+  lastStreakDate    DateTime?
+
   media         Media[]
   notifications   Notification[]
   otpCodes OtpCode[]
@@ -33,6 +51,7 @@ model User {
   enrollments     Enrollment[]
   progress        Progress[]
   refreshTokens RefreshToken[]
+  uploadedPastPapers PastPaper[]
 }
 
 model OtpCode {
@@ -101,6 +120,8 @@ model Progress {
 
   user      User       @relation(fields: [userId], references: [id])
   lesson    Lesson     @relation(fields: [lessonId], references: [id])
+
+  @@unique([userId, lessonId])
 }
 
 model Media {
@@ -141,4 +162,18 @@ model Notification {
 
   user          User          @relation(fields: [userId], references: [id])
   achievement   Achievement?  @relation(fields: [achievementId], references: [id])
+}
+
+model PastPaper {
+  id         String   @id @default(cuid())
+  fileName   String
+  subject    String
+  url        String
+  publicId   String   @unique
+  fileSize   Int // Store in bytes
+  fileType   String   @default("pdf")
+  createdAt  DateTime @default(now())
+
+  uploaderId String?
+  uploader   User?     @relation(fields: [uploaderId], references: [id])
 }

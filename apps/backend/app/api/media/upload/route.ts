@@ -86,9 +86,16 @@ export async function POST(req: NextRequest) {
       },
     });
 
+    if (userId && folder === 'avatars') {
+      await db.user.update({
+        where: { id: userId },
+        data: { avatarUrl: uploadResult.secure_url },
+      });
+    }
+
     return NextResponse.json(
       {
-        message: 'Upload successful and saved to database.',
+        message: 'Upload successful',
         media,
       },
       { status: 201 },

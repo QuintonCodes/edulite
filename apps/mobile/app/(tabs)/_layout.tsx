@@ -3,38 +3,50 @@ import { BlurView } from 'expo-blur';
 import { Tabs } from 'expo-router';
 import { Platform, Text, View } from 'react-native';
 
+import { useTheme } from '@/contexts/theme-context';
+import { darkColors, lightColors } from '@/styles/theme';
+
 export default function TabsLayout() {
+  const { theme } = useTheme();
+  const colors = theme === 'dark' ? darkColors : lightColors;
+
+  const tabBarStyle = {
+    position: 'absolute' as const,
+    marginHorizontal: 20,
+    bottom: 28,
+    left: 20,
+    right: 20,
+    borderRadius: 30,
+    height: 75,
+    overflow: 'hidden' as const,
+    borderWidth: 0.5,
+    borderColor: colors.tabBarBorder,
+    backgroundColor: colors.tabBarBackground,
+    elevation: 0,
+    shadowColor: theme === 'dark' ? '#ffffff' : '#000000',
+    shadowOpacity: theme === 'dark' ? 0.1 : 0.15,
+    shadowRadius: 8,
+    display: 'flex' as const,
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+  };
+
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
         tabBarShowLabel: false,
-        tabBarStyle: {
-          position: 'absolute',
-          marginHorizontal: 20,
-          bottom: 28,
-          left: 20,
-          right: 20,
-          borderRadius: 30,
-          height: 75,
-          overflow: 'hidden',
-          borderWidth: 0.5,
-          borderColor: 'rgba(0, 0, 0, 0.1)',
-          backgroundColor: 'rgba(255, 255, 255, 0.6)',
-          elevation: 0,
-          shadowColor: '#000',
-          shadowOpacity: 0.15,
-          shadowRadius: 8,
-          display: 'flex',
-          flexDirection: 'row',
-          alignItems: 'center',
-        },
+        tabBarStyle,
         tabBarBackground: () => (
-          <BlurView intensity={Platform.OS === 'ios' ? 50 : 70} tint="light" style={{ flex: 1 }} />
+          <BlurView
+            intensity={Platform.OS === 'ios' ? 50 : 70}
+            tint={theme === 'dark' ? 'dark' : 'light'}
+            style={{ flex: 1 }}
+          />
         ),
-        tabBarActiveTintColor: '#1f5da2',
-        tabBarInactiveTintColor: '#9ca3af',
-        sceneStyle: { backgroundColor: '#f9fafb' },
+        tabBarActiveTintColor: colors.tabBarActiveTint,
+        tabBarInactiveTintColor: colors.tabBarInactiveTint,
+        sceneStyle: { backgroundColor: colors.background },
       }}
     >
       {/* Home */}
@@ -46,12 +58,14 @@ export default function TabsLayout() {
         }}
       />
 
-      {/* Tutorials */}
+      {/* Assessments */}
       <Tabs.Screen
-        name="tutorials"
+        name="assessments"
         options={{
-          title: 'Tutorials',
-          tabBarIcon: ({ color, focused }) => <TabItem icon="book" label="Tutorials" color={color} focused={focused} />,
+          title: 'Assessments',
+          tabBarIcon: ({ color, focused }) => (
+            <TabItem icon="clipboard" label="Assessments" color={color} focused={focused} />
+          ),
         }}
       />
 

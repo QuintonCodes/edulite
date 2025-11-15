@@ -1,7 +1,7 @@
 import { FontAwesome5, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -12,573 +12,686 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import * as Progress from 'react-native-progress';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAuth } from '@/contexts/auth-context';
+import { useTheme } from '@/contexts/theme-context';
 import { useTutorials } from '@/hooks/useTutorials';
-import { achievementData } from '@/utils/data';
+import { Colors, darkColors, lightColors } from '@/styles/theme';
+
+const subjectStyleMap: Record<string, { icon: any; library: any; color: string }> = {
+  Mathematics: { icon: 'math-compass', library: MaterialCommunityIcons, color: '#3b82f6' },
+  'Physical Sciences': { icon: 'atom', library: MaterialCommunityIcons, color: '#8b5cf6' },
+  'Life Sciences': { icon: 'leaf-outline', library: Ionicons, color: '#10b981' },
+  Geography: { icon: 'globe-outline', library: Ionicons, color: '#f59e0b' },
+  History: { icon: 'landmark', library: FontAwesome5, color: '#ec4899' },
+  Default: { icon: 'book', library: Ionicons, color: '#6b7280' },
+};
 
 export default function Home() {
+  const { theme } = useTheme();
+  const colors = theme === 'dark' ? darkColors : lightColors;
+  const styles = getStyles(colors);
+
   const [selectedSubject, setSelectedSubject] = useState('All');
   const [refreshing, setRefreshing] = useState(false);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
 
   const { user, isAuthenticated } = useAuth();
-  const { data: tutorials, isLoading, isError, refetch } = useTutorials(selectedSubject);
+  const { data: filteredTutorials, isLoading, isError, refetch } = useTutorials(selectedSubject);
+  const { data: allTutorials } = useTutorials('All');
 
-  const subjects = [
-    { label: 'All', icon: 'book', library: Ionicons, color: '#3b82f6' },
-    { label: 'Maths', icon: 'math-compass', library: MaterialCommunityIcons, color: '#3b82f6' },
-    { label: 'Science', icon: 'atom', library: MaterialCommunityIcons, color: '#8b5cf6' },
-    { label: 'History', icon: 'landmark', library: FontAwesome5, color: '#ec4899' },
-  ];
+  function useContinueLearning() {
+    if (!allTutorials || allTutorials.length < 2) {
+      return { lastWatchedTutorial: null, progress: 0 };
+    }
+    return { lastWatchedTutorial: allTutorials[1], progress: 0.6 }; // Returns "Newton's Laws" at 60%
+  }
+  const { lastWatchedTutorial, progress } = useContinueLearning();
 
-  // 🔹 Color mappings for UI
+  const dynamicSubjects = useMemo(() => {
+    if (!allTutorials) return [];
+    // Get unique subject names
+    const subjects = [...new Set(allTutorials.map((t) => t.subject))];
+    // Map to the object structure our UI expects
+    const subjectButtons = subjects.map((subject) => {
+      const style = subjectStyleMap[subject] || subjectStyleMap.Default;
+      return { label: subject, ...style };
+    });
+    // Add "All" to the beginning
+    return [{ label: 'All', icon: 'book', library: Ionicons, color: colors.accent }, ...subjectButtons];
+  }, [allTutorials, colors.accent]);
+
+  const newlyAddedTutorials = useMemo(() => {
+    if (!allTutorials) return [];
+    // Sort by createdAt date (newest first) and take the top 5
+    return allTutorials.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, 5);
+  }, [allTutorials]);
+
+  // Color mappings for UI
   const difficultyColors = {
-    Beginner: '#10B981',
-    Intermediate: '#F59E0B',
-    Advanced: '#EF4444',
+    'Grade 10': colors.success,
+    'Grade 11': colors.warning,
+    'Grade 12': colors.danger,
+    Beginner: colors.success, // Fallback
+    Intermediate: colors.warning, // Fallback
+    Advanced: colors.danger, // Fallback
   };
 
-  const subjectColors = {
-    Maths: '#3B82F6',
-    Science: '#8B5CF6',
+  const subjectColors: Record<string, string> = {
+    Mathematics: '#3b82f6',
+    'Physical Sciences': '#8B5CF6',
+    'Life Sciences': '#10b981',
+    Geography: '#f59e0b',
     History: '#EC4899',
+    Default: '#6b7280',
   };
 
   async function onRefresh() {
     setRefreshing(true);
     try {
-      refetch();
+      await refetch();
     } finally {
       setRefreshing(false);
     }
   }
 
-  return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-      >
-        <View style={{ paddingBottom: 32 }}>
-          {/* Header */}
-          <View style={styles.header}>
-            <View style={styles.headerTextContainer}>
-              <Text style={styles.headerTitle} ellipsizeMode="tail" numberOfLines={2}>
-                {isAuthenticated ? `Welcome Back, ${user?.name}!` : 'Welcome to Edulite!'}
-              </Text>
-              <Text style={styles.headerSubtitle}>
-                {isAuthenticated
-                  ? 'Continue your learning journey with personalized content.'
-                  : 'Sign up or log in to unlock exclusive features.'}
-              </Text>
-            </View>
+  function toggleNotifications() {
+    setNotificationsEnabled(!notificationsEnabled);
+  }
 
-            <TouchableOpacity style={styles.notificationButton} onPress={() => router.push('/')} activeOpacity={0.8}>
-              <Ionicons name="notifications-outline" size={28} color="#3b82f6" />
-              <View style={styles.notificationBadge}>
-                <Text style={styles.badgeText}>3</Text> {/* Change '3' to your dynamic count */}
+  // Header component
+  const ListHeaderComponent = () => (
+    <>
+      {/* Header */}
+      <View style={styles.header}>
+        <View style={styles.headerTextContainer}>
+          <Text style={styles.headerTitle} ellipsizeMode="tail" numberOfLines={1}>
+            {isAuthenticated ? `Welcome Back, ${user?.name}!` : 'Welcome to Edulite!'}
+          </Text>
+          <Text style={styles.headerSubtitle}>
+            {isAuthenticated ? 'Continue your learning journey.' : 'Sign up or log in to unlock exclusive features.'}
+          </Text>
+        </View>
+
+        <TouchableOpacity style={styles.notificationButton} onPress={toggleNotifications} activeOpacity={0.8}>
+          <Ionicons
+            name={notificationsEnabled ? 'notifications' : 'notifications-off'}
+            size={28}
+            color={notificationsEnabled ? colors.accent : colors.textSecondary}
+          />
+          {notificationsEnabled && (
+            <View style={styles.notificationBadge}>
+              <Text style={styles.badgeText}>3</Text>
+            </View>
+          )}
+        </TouchableOpacity>
+      </View>
+
+      {isAuthenticated ? (
+        lastWatchedTutorial && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Continue Learning</Text>
+            <TouchableOpacity
+              style={styles.continueCard}
+              onPress={() => router.push(`/tutorial/${lastWatchedTutorial.id}`)}
+              activeOpacity={0.9}
+            >
+              <Image source={{ uri: lastWatchedTutorial.image }} style={styles.continueImage} />
+              <View style={styles.continueContent}>
+                <Text style={styles.continueSubject}>{lastWatchedTutorial.subject}</Text>
+                <Text style={styles.continueTitle} numberOfLines={2}>
+                  {lastWatchedTutorial.title}
+                </Text>
+                <View style={styles.continueProgress}>
+                  <Progress.Bar
+                    progress={progress}
+                    width={null}
+                    color={colors.accent}
+                    unfilledColor={colors.border}
+                    borderWidth={0}
+                    height={6}
+                    borderRadius={3}
+                  />
+                  <Text style={styles.continuePercent}>{Math.round(progress * 100)}%</Text>
+                </View>
               </View>
             </TouchableOpacity>
           </View>
+        )
+      ) : (
+        <View style={styles.guestPrompt}>
+          <Text style={styles.guestPromptText}>Log in to track your achievements and save your progress!</Text>
+          <TouchableOpacity style={styles.loginButton} onPress={() => router.push('/login')}>
+            <Text style={styles.loginButtonText}>Log In</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
-          {/* Subject Filter */}
-          <View style={styles.filterContainer}>
-            <Text style={styles.filterTitle}>Browse by Subject</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              <View style={styles.filterButtons}>
-                {subjects.map(({ label, icon, library: IconComp, color }) => (
-                  <TouchableOpacity
-                    key={label}
-                    style={[styles.filterButton, selectedSubject === label && styles.filterButtonActive]}
-                    onPress={() => setSelectedSubject(label)}
-                  >
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                      <IconComp name={icon} size={16} color={selectedSubject === label ? '#fff' : color} />
-                      <Text
-                        style={[styles.filterButtonText, selectedSubject === label && styles.filterButtonTextActive]}
-                      >
-                        {label}
-                      </Text>
-                    </View>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </ScrollView>
+      {/* Subject Filter */}
+      <View style={styles.filterContainer}>
+        <Text style={styles.filterTitle}>Browse by Subject</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          <View style={styles.filterButtons}>
+            {dynamicSubjects.map(({ label, icon, library: IconComp, color }) => (
+              <TouchableOpacity
+                key={label}
+                style={[styles.filterButton, selectedSubject === label && styles.filterButtonActive]}
+                onPress={() => setSelectedSubject(label)}
+              >
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <IconComp name={icon} size={16} color={selectedSubject === label ? '#fff' : color} />
+                  <Text style={[styles.filterButtonText, selectedSubject === label && styles.filterButtonTextActive]}>
+                    {label}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            ))}
           </View>
+        </ScrollView>
+      </View>
 
-          {/* Error State */}
-          {isLoading ? (
+      {/* Section Header */}
+      {!isLoading && !isError && filteredTutorials && (
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>{selectedSubject === 'All' ? 'All Tutorials' : selectedSubject}</Text>
+          <Text style={styles.tutorialCount}>{filteredTutorials.length} tutorials available</Text>
+        </View>
+      )}
+    </>
+  );
+
+  // Footer component
+  const ListFooterComponent = () => (
+    <>
+      {/* Newly Added Section */}
+      {newlyAddedTutorials.length > 0 && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Newly Added</Text>
+          <FlatList
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            data={newlyAddedTutorials}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={{ gap: 12 }}
+            renderItem={({ item: tutorial }) => (
+              <TouchableOpacity
+                style={styles.newTutorialCard}
+                onPress={() => router.push(`/tutorial/${tutorial.id}`)}
+                activeOpacity={0.9}
+              >
+                <Image source={{ uri: tutorial.image }} style={styles.newTutorialImage} />
+                <View style={styles.newTutorialContent}>
+                  <Text style={styles.newTutorialSubject}>{tutorial.subject}</Text>
+                  <Text style={styles.newTutorialTitle} numberOfLines={2}>
+                    {tutorial.title}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            )}
+          />
+        </View>
+      )}
+
+      <View style={{ height: 120 }} />
+    </>
+  );
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
+        <FlatList
+          data={[]}
+          ListHeaderComponent={ListHeaderComponent}
+          ListFooterComponent={ListFooterComponent}
+          ListEmptyComponent={
             <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color="#3B82F6" />
+              <ActivityIndicator size="large" color={colors.accent} />
               <Text style={styles.loadingText}>Loading tutorials...</Text>
             </View>
-          ) : isError || !tutorials ? (
+          }
+          renderItem={null}
+          contentContainerStyle={styles.flatListContent}
+        />
+      </SafeAreaView>
+    );
+  }
+
+  // Error state
+  if (isError || !filteredTutorials) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
+        <FlatList
+          data={[]}
+          ListHeaderComponent={ListHeaderComponent}
+          ListFooterComponent={ListFooterComponent}
+          ListEmptyComponent={
             <View style={styles.errorContainer}>
               <Text style={styles.errorText}>Failed to load tutorials. Please retry.</Text>
               <TouchableOpacity style={styles.retryButton} onPress={() => refetch()}>
                 <Text style={styles.retryButtonText}>Retry</Text>
               </TouchableOpacity>
             </View>
-          ) : (
-            <>
-              {/* Tutorials Section */}
-              <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>All Tutorials</Text>
-                <Text style={styles.tutorialCount}>{tutorials.length} tutorials available</Text>
+          }
+          renderItem={null}
+          contentContainerStyle={styles.flatListContent}
+        />
+      </SafeAreaView>
+    );
+  }
+
+  return (
+    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
+      <FlatList
+        data={filteredTutorials}
+        keyExtractor={(item) => item.id}
+        ListHeaderComponent={ListHeaderComponent}
+        ListFooterComponent={ListFooterComponent}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.flatListContent}
+        renderItem={({ item: tutorial }) => (
+          <TouchableOpacity
+            style={styles.tutorialCard}
+            onPress={() => router.push(`/tutorial/${tutorial.id}`)}
+            activeOpacity={0.9}
+          >
+            <Image source={{ uri: tutorial.image }} style={styles.tutorialImage} />
+            <View style={{ padding: 14 }}>
+              <View style={styles.tutorialTags}>
+                <View style={[styles.subjectTag, { backgroundColor: subjectColors[tutorial.subject] }]}>
+                  <Text style={styles.tagText}>{tutorial.subject}</Text>
+                </View>
+                <View style={[styles.difficultyTag, { backgroundColor: difficultyColors[tutorial.difficulty] }]}>
+                  <Text style={styles.tagText}>{tutorial.difficulty}</Text>
+                </View>
               </View>
-
-              <FlatList
-                data={tutorials}
-                keyExtractor={(item) => item.id}
-                numColumns={1}
-                contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 20, gap: 16 }}
-                renderItem={({ item: tutorial }) => (
-                  <TouchableOpacity
-                    style={styles.tutorialCard}
-                    onPress={() => router.push(`/tutorial/${tutorial.id}`)}
-                    activeOpacity={0.9}
-                  >
-                    <Image source={{ uri: tutorial.image }} style={styles.tutorialImage} />
-                    <View style={{ padding: 14 }}>
-                      <View style={styles.tutorialTags}>
-                        <View style={[styles.subjectTag, { backgroundColor: subjectColors[tutorial.subject] }]}>
-                          <Text style={styles.tagText}>{tutorial.subject}</Text>
-                        </View>
-                        <View
-                          style={[styles.difficultyTag, { backgroundColor: difficultyColors[tutorial.difficulty] }]}
-                        >
-                          <Text style={styles.tagText}>{tutorial.difficulty}</Text>
-                        </View>
-                      </View>
-                      <Text style={styles.tutorialTitle}>{tutorial.title}</Text>
-                      <View style={styles.tutorialMeta}>
-                        <View style={styles.tutorialMetaItem}>
-                          <Ionicons name="person-outline" size={14} color="#6b7280" />
-                          <Text style={styles.tutorialInstructor}>{tutorial.instructor}</Text>
-                        </View>
-                        <View style={styles.tutorialMetaItem}>
-                          <Ionicons name="time-outline" size={14} color="#6b7280" />
-                          <Text style={styles.tutorialDuration}>{tutorial.duration}</Text>
-                        </View>
-                      </View>
-                    </View>
-                  </TouchableOpacity>
-                )}
-              />
-            </>
-          )}
-
-          {/* Achievements Section */}
-          {isAuthenticated ? (
-            <View style={styles.achievementsSection}>
-              <Text style={styles.achievementsTitle}>Achievements</Text>
-              <Text style={styles.achievementsSubtitle}>
-                {achievementData.filter((a) => a.earned).length} of {achievementData.length} earned
-              </Text>
-              <View style={styles.achievementsList}>
-                {achievementData.map((achievement) => {
-                  const { icon } = achievement;
-                  const IconComponent =
-                    icon.library === 'Ionicons'
-                      ? Ionicons
-                      : icon.library === 'FontAwesome5'
-                        ? FontAwesome5
-                        : MaterialCommunityIcons;
-
-                  return (
-                    <View
-                      key={achievement.id}
-                      style={[styles.achievementCard, !achievement.earned && styles.achievementCardLocked]}
-                    >
-                      <IconComponent name={icon.name as any} size={24} color={icon.color} />
-                      <View style={{ flex: 1 }}>
-                        <Text style={[styles.achievementTitle, !achievement.earned && styles.achievementTitleLocked]}>
-                          {achievement.title}
-                        </Text>
-                        <Text style={styles.achievementSubtitle}>{achievement.subtitle}</Text>
-                      </View>
-                    </View>
-                  );
-                })}
+              <Text style={styles.tutorialTitle}>{tutorial.title}</Text>
+              <View style={styles.tutorialMeta}>
+                <View style={styles.tutorialMetaItem}>
+                  <Ionicons name="person-outline" size={14} color={colors.textSecondary} />
+                  <Text style={styles.tutorialInstructor}>{tutorial.instructor}</Text>
+                </View>
+                <View style={styles.tutorialMetaItem}>
+                  <Ionicons name="time-outline" size={14} color={colors.textSecondary} />
+                  <Text style={styles.tutorialDuration}>{tutorial.duration}</Text>
+                </View>
               </View>
             </View>
-          ) : (
-            <View style={styles.guestPrompt}>
-              <Text style={styles.guestPromptText}>
-                Log in to track your achievements and unlock exclusive rewards!
-              </Text>
-              <TouchableOpacity style={styles.loginButton} onPress={() => router.push('/login')}>
-                <Text style={styles.loginButtonText}>Log In</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-
-          {/* Progress Stats */}
-          {isAuthenticated && (
-            <View style={styles.progressSection}>
-              <Text style={styles.progressTitle}>Your Progress</Text>
-              <View style={styles.statsGrid}>
-                {[
-                  { label: 'Tutorials Completed', value: '12' },
-                  { label: 'Hours Learned', value: '8.5h' },
-                  { label: 'Current Streak', value: '5 days' },
-                  { label: 'Average Score', value: '87%' },
-                ].map((s, i) => (
-                  <View key={i} style={styles.statCard}>
-                    <Text style={styles.statValue}>{s.value}</Text>
-                    <Text style={styles.statLabel}>{s.label}</Text>
-                  </View>
-                ))}
-              </View>
-            </View>
-          )}
-        </View>
-      </ScrollView>
+          </TouchableOpacity>
+        )}
+      />
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    backgroundColor: '#f9fafb',
-    flex: 1,
-    marginBottom: 35,
-  },
-  scrollContent: {
-    backgroundColor: '#f9fafb',
-    paddingBottom: 20,
-  },
-  header: {
-    alignItems: 'center',
-    borderBottomColor: '#e5e7eb',
-    borderBottomWidth: 1,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    paddingBottom: 20,
-    paddingHorizontal: 16,
-    paddingTop: 30,
-    position: 'relative',
-  },
-  headerTextContainer: {
-    justifyContent: 'center',
-  },
-  headerTitle: {
-    color: '#1976d2',
-    fontFamily: 'Poppins',
-    fontSize: 24,
-    marginBottom: 4,
-    flex: 1,
-  },
-  headerSubtitle: {
-    color: '#666',
-    fontFamily: 'Poppins_Regular',
-    fontSize: 14,
-  },
-  notificationButton: {
-    position: 'absolute',
-    right: 16,
-    top: 35,
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  notificationBadge: {
-    position: 'absolute',
-    alignItems: 'center',
-    backgroundColor: '#ef4444',
-    borderRadius: 10,
-    height: 18,
-    justifyContent: 'center',
-    right: 2,
-    top: 2,
-    minWidth: 18,
-    paddingHorizontal: 4,
-  },
-  badgeText: {
-    color: '#fff',
-    fontFamily: 'Poppins',
-    fontSize: 10,
-  },
-  filterContainer: {
-    borderBottomColor: '#e5e7eb',
-    borderBottomWidth: 1,
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-  },
-  filterTitle: {
-    color: '#111827',
-    fontFamily: 'Poppins',
-    fontSize: 16,
-    marginBottom: 12,
-  },
-  filterButtons: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  filterButton: {
-    backgroundColor: '#f3f4f6',
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  filterButtonActive: {
-    backgroundColor: '#3b82f6',
-  },
-  filterButtonText: {
-    color: '#6b7280',
-    fontFamily: 'Poppins_Regular',
-    fontSize: 14,
-  },
-  filterButtonTextActive: {
-    color: '#fff',
-  },
-  loadingContainer: {
-    alignItems: 'center',
-    marginTop: 60,
-  },
-  loadingText: {
-    color: '#6b7280',
-    fontFamily: 'Poppins',
-    fontSize: 16,
-    marginTop: 12,
-  },
-  errorContainer: {
-    alignItems: 'center',
-    backgroundColor: '#fee2e2',
-    borderRadius: 12,
-    margin: 20,
-    padding: 20,
-  },
-  errorText: {
-    color: '#991b1b',
-    fontFamily: 'Poppins',
-    fontSize: 14,
-    marginBottom: 12,
-    textAlign: 'center',
-  },
-  retryButton: {
-    backgroundColor: '#ef4444',
-    borderRadius: 8,
-    paddingHorizontal: 24,
-    paddingVertical: 10,
-  },
-  retryButtonText: {
-    color: '#fff',
-    fontFamily: 'Poppins',
-  },
-  sectionHeader: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingBottom: 12,
-    paddingHorizontal: 20,
-    paddingTop: 24,
-  },
-  sectionTitle: {
-    color: '#111827',
-    fontFamily: 'Poppins',
-    fontSize: 18,
-  },
-  tutorialCount: {
-    color: '#6b7280',
-    fontFamily: 'Poppins',
-    fontSize: 14,
-  },
-  tutorialsGrid: {
-    gap: 16,
-    paddingHorizontal: 20,
-  },
-  tutorialCard: {
-    backgroundColor: '#fff',
-    borderRadius: 20,
-    elevation: 3,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-  },
-  tutorialImage: {
-    width: '100%',
-    height: 170,
-  },
-  tutorialTags: {
-    flexDirection: 'row',
-    gap: 6,
-    marginBottom: 10,
-  },
-  subjectTag: {
-    borderRadius: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-  },
-  difficultyTag: {
-    borderRadius: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-  },
-  tagText: {
-    color: '#fff',
-    fontFamily: 'Poppins',
-    fontSize: 12,
-  },
-  tutorialTitle: {
-    fontSize: 15,
-    fontFamily: 'Poppins',
-    color: '#111827',
-    marginBottom: 8,
-    lineHeight: 22,
-  },
-  tutorialMeta: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 6,
-  },
-  tutorialMetaItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  tutorialInstructor: {
-    color: '#6b7280',
-    fontFamily: 'Poppins',
-    fontSize: 12,
-    flexShrink: 1,
-  },
-  tutorialDuration: {
-    color: '#6b7280',
-    fontFamily: 'Poppins',
-    fontSize: 12,
-    flexShrink: 1,
-  },
-  achievementsSection: {
-    marginTop: 28,
-    paddingHorizontal: 20,
-  },
-  achievementsTitle: {
-    color: '#111827',
-    fontFamily: 'Poppins',
-    fontSize: 18,
-    marginBottom: 4,
-  },
-  achievementsSubtitle: {
-    color: '#6B7280',
-    fontFamily: 'Poppins_Regular',
-    fontSize: 14,
-    marginBottom: 16,
-  },
-  achievementsList: {
-    flex: 1,
-    gap: 12,
-  },
-  achievementCard: {
-    alignItems: 'center',
-    backgroundColor: '#fef3c7',
-    borderRadius: 20,
-    flexDirection: 'row',
-    padding: 14,
-    gap: 12,
-  },
-  achievementCardLocked: {
-    backgroundColor: '#f3f4f6',
-    opacity: 0.8,
-  },
-  achievementIcon: {
-    fontSize: 28,
-    marginRight: 14,
-  },
-  achievementTitle: {
-    fontSize: 15,
-    fontFamily: 'Poppins',
-    color: '#111827',
-    marginBottom: 2,
-  },
-  achievementTitleLocked: {
-    color: '#6b7280',
-  },
-  achievementSubtitle: {
-    fontSize: 13,
-    color: '#6b7280',
-    fontFamily: 'Poppins_Regular',
-  },
-  guestPrompt: {
-    backgroundColor: '#fff',
-    borderRadius: 20,
-    padding: 20,
-    marginHorizontal: 20,
-    marginTop: 20,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  guestPromptText: {
-    fontSize: 14,
-    fontFamily: 'Poppins_Regular',
-    color: '#6b7280',
-    textAlign: 'center',
-    marginBottom: 12,
-  },
-  loginButton: {
-    backgroundColor: '#3b82f6',
-    paddingHorizontal: 24,
-    paddingVertical: 10,
-    borderRadius: 8,
-  },
-  loginButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontFamily: 'Poppins',
-  },
-  progressSection: {
-    marginBottom: 36,
-    marginTop: 28,
-    paddingHorizontal: 20,
-  },
-  progressTitle: {
-    color: '#111827',
-    fontFamily: 'Poppins',
-    fontSize: 18,
-    marginBottom: 14,
-  },
-  statsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  statCard: {
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    borderRadius: 20,
-    elevation: 3,
-    flex: 1,
-    minWidth: '45%',
-    paddingVertical: 18,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-  },
-  statValue: {
-    color: '#3b82f6',
-    fontFamily: 'Poppins',
-    fontSize: 22,
-    marginBottom: 2,
-  },
-  statLabel: {
-    color: '#6b7280',
-    fontFamily: 'Poppins_Regular',
-    fontSize: 12,
-    textAlign: 'center',
-  },
-});
+const getStyles = (colors: Colors) =>
+  StyleSheet.create({
+    container: {
+      backgroundColor: colors.background,
+      flex: 1,
+    },
+    flatListContent: {
+      backgroundColor: colors.background,
+      paddingHorizontal: 20,
+      gap: 16,
+    },
+    header: {
+      alignItems: 'center',
+      borderBottomColor: colors.border,
+      borderBottomWidth: 1,
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      paddingBottom: 20,
+      paddingHorizontal: 16,
+      paddingTop: 30,
+      marginHorizontal: -20,
+    },
+    headerTextContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      paddingRight: 8,
+    },
+    headerTitle: {
+      color: colors.textHeader,
+      fontFamily: 'Poppins',
+      fontSize: 24,
+      marginBottom: 4,
+    },
+    headerSubtitle: {
+      color: colors.textSecondary,
+      fontFamily: 'Poppins_Regular',
+      fontSize: 14,
+    },
+    notificationButton: {
+      width: 40,
+      height: 40,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    notificationBadge: {
+      position: 'absolute',
+      alignItems: 'center',
+      backgroundColor: colors.danger,
+      borderRadius: 10,
+      height: 18,
+      justifyContent: 'center',
+      right: 2,
+      top: 2,
+      minWidth: 18,
+      paddingHorizontal: 4,
+    },
+    badgeText: {
+      color: colors.primary,
+      fontFamily: 'Poppins',
+      fontSize: 10,
+    },
+    filterContainer: {
+      paddingTop: 24,
+    },
+    filterTitle: {
+      color: colors.textPrimary,
+      fontFamily: 'Poppins',
+      fontSize: 16,
+      marginBottom: 12,
+      paddingHorizontal: 5,
+    },
+    filterButtons: {
+      flexDirection: 'row',
+      gap: 8,
+      paddingHorizontal: 5,
+    },
+    filterButton: {
+      backgroundColor: colors.secondary,
+      borderRadius: 20,
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+    },
+    filterButtonActive: {
+      backgroundColor: colors.accent,
+    },
+    filterButtonText: {
+      color: colors.textSecondary,
+      fontFamily: 'Poppins_Regular',
+      fontSize: 14,
+    },
+    filterButtonTextActive: {
+      color: colors.primary,
+    },
+    loadingContainer: {
+      alignItems: 'center',
+      marginTop: 60,
+    },
+    loadingText: {
+      color: colors.textSecondary,
+      fontFamily: 'Poppins',
+      fontSize: 16,
+      marginTop: 12,
+    },
+    errorContainer: {
+      alignItems: 'center',
+      backgroundColor: colors.accentLight,
+      borderRadius: 12,
+      margin: 20,
+      padding: 20,
+    },
+    errorText: {
+      color: colors.danger,
+      fontFamily: 'Poppins',
+      fontSize: 14,
+      marginBottom: 12,
+      textAlign: 'center',
+    },
+    retryButton: {
+      backgroundColor: colors.danger,
+      borderRadius: 8,
+      paddingHorizontal: 24,
+      paddingVertical: 10,
+    },
+    retryButtonText: {
+      color: colors.primary,
+      fontFamily: 'Poppins',
+    },
+    sectionHeader: {
+      alignItems: 'center',
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      paddingBottom: 6,
+      paddingHorizontal: 5,
+      paddingTop: 24,
+    },
+    section: {
+      paddingTop: 16,
+    },
+    sectionTitle: {
+      color: colors.textPrimary,
+      fontFamily: 'Poppins',
+      fontSize: 18,
+      marginBottom: 16,
+      paddingHorizontal: 5,
+    },
+    continueCard: {
+      backgroundColor: colors.primary,
+      borderRadius: 20,
+      elevation: 3,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 8,
+      flexDirection: 'row',
+      overflow: 'hidden',
+    },
+    continueImage: {
+      width: 100,
+      height: '100%',
+    },
+    continueContent: {
+      padding: 14,
+      flex: 1,
+      justifyContent: 'center',
+    },
+    continueSubject: {
+      fontFamily: 'Poppins',
+      fontSize: 12,
+      color: colors.accent,
+      marginBottom: 4,
+    },
+    continueTitle: {
+      fontFamily: 'Poppins',
+      fontSize: 15,
+      color: colors.textPrimary,
+      lineHeight: 22,
+      marginBottom: 12,
+    },
+    continueProgress: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    continuePercent: {
+      fontFamily: 'Poppins',
+      fontSize: 12,
+      color: colors.textSecondary,
+    },
+    tutorialCount: {
+      color: colors.textSecondary,
+      fontFamily: 'Poppins',
+      fontSize: 14,
+    },
+    tutorialsGrid: {
+      gap: 16,
+      paddingHorizontal: 20,
+    },
+    tutorialCard: {
+      backgroundColor: colors.primary,
+      borderRadius: 20,
+      elevation: 3,
+      overflow: 'hidden',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 8,
+    },
+    tutorialImage: {
+      width: '100%',
+      height: 170,
+    },
+    tutorialTags: {
+      flexDirection: 'row',
+      gap: 6,
+      marginBottom: 10,
+    },
+    subjectTag: {
+      borderRadius: 10,
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+    },
+    difficultyTag: {
+      borderRadius: 10,
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+    },
+    tagText: {
+      color: colors.primary,
+      fontFamily: 'Poppins',
+      fontSize: 12,
+    },
+    tutorialTitle: {
+      fontSize: 15,
+      fontFamily: 'Poppins',
+      color: colors.textPrimary,
+      marginBottom: 8,
+      lineHeight: 22,
+    },
+    tutorialMeta: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginTop: 6,
+    },
+    tutorialMetaItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+    },
+    tutorialInstructor: {
+      color: colors.textSecondary,
+      fontFamily: 'Poppins',
+      fontSize: 12,
+      flexShrink: 1,
+    },
+    tutorialDuration: {
+      color: colors.textSecondary,
+      fontFamily: 'Poppins',
+      fontSize: 12,
+      flexShrink: 1,
+    },
+    newTutorialCard: {
+      backgroundColor: colors.primary,
+      borderRadius: 16,
+      elevation: 2,
+      overflow: 'hidden',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.08,
+      shadowRadius: 6,
+      width: 160, // Fixed width for horizontal list
+    },
+    newTutorialImage: {
+      width: '100%',
+      height: 100,
+    },
+    newTutorialContent: {
+      padding: 10,
+    },
+    newTutorialSubject: {
+      fontFamily: 'Poppins',
+      fontSize: 11,
+      color: colors.accent,
+      marginBottom: 2,
+    },
+    newTutorialTitle: {
+      fontFamily: 'Poppins',
+      fontSize: 13,
+      color: colors.textPrimary,
+      lineHeight: 18,
+    },
+    guestPrompt: {
+      backgroundColor: colors.primary,
+      borderRadius: 20,
+      padding: 20,
+      marginHorizontal: 10,
+      marginTop: 20,
+      marginBottom: 40,
+      alignItems: 'center',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 8,
+      elevation: 3,
+    },
+    guestPromptText: {
+      fontSize: 14,
+      fontFamily: 'Poppins_Regular',
+      color: colors.textSecondary,
+      textAlign: 'center',
+      marginBottom: 12,
+    },
+    loginButton: {
+      backgroundColor: colors.accent,
+      paddingHorizontal: 24,
+      paddingVertical: 10,
+      borderRadius: 8,
+    },
+    loginButtonText: {
+      color: colors.primary,
+      fontSize: 16,
+      fontFamily: 'Poppins',
+    },
+    progressSection: {
+      marginBottom: 36,
+      marginTop: 28,
+      paddingHorizontal: 20,
+    },
+    progressTitle: {
+      color: colors.textPrimary,
+      fontFamily: 'Poppins',
+      fontSize: 18,
+      marginBottom: 14,
+    },
+    statsGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 12,
+    },
+    statCard: {
+      alignItems: 'center',
+      backgroundColor: colors.primary,
+      borderRadius: 20,
+      elevation: 3,
+      flex: 1,
+      minWidth: '45%',
+      paddingVertical: 18,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 8,
+    },
+    statValue: {
+      color: colors.accent,
+      fontFamily: 'Poppins',
+      fontSize: 22,
+      marginBottom: 2,
+    },
+    statLabel: {
+      color: colors.textSecondary,
+      fontFamily: 'Poppins_Regular',
+      fontSize: 12,
+      textAlign: 'center',
+    },
+  });

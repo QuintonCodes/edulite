@@ -17,6 +17,7 @@ import { useAuth } from '@/contexts/auth-context';
 import { VerifyFormInput, verifySchema } from '@/utils/types';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Controller, useForm } from 'react-hook-form';
+import Toast from 'react-native-toast-message';
 
 export default function Verify() {
   const { email } = useLocalSearchParams();
@@ -32,6 +33,7 @@ export default function Verify() {
     setError,
     formState: { isSubmitting, errors },
     watch,
+    reset,
   } = useForm<VerifyFormInput>({
     resolver: zodResolver(verifySchema),
     defaultValues: { otp: '' },
@@ -47,6 +49,7 @@ export default function Verify() {
 
   function handleDigitChange(value: string, index: number) {
     if (!/^\d*$/.test(value)) return; // only digits
+
     const newOtp = otp.split('');
     newOtp[index] = value;
     const joined = newOtp.join('');
@@ -63,25 +66,75 @@ export default function Verify() {
 
   async function onVerify(data: VerifyFormInput) {
     try {
-      const { error: verifyError } = await verify(email as string, data.otp);
-      if (verifyError) {
-        setError('otp', { message: verifyError });
+      const result = await verify(email as string, data.otp);
+
+      if (result.error) {
+        setError('otp', { message: result.error });
+        Toast.show({
+          type: 'error',
+          text1: 'Verification Failed',
+          text2: result.error,
+        });
+        // Clear OTP fields on error
+        reset();
+        inputs[0].current?.focus();
         return;
       }
-      router.replace('/');
+
+      Toast.show({
+        type: 'success',
+        text1: 'Email Verified',
+        text2: 'Your account has been verified successfully',
+      });
+
+      setTimeout(() => {
+        router.replace('/');
+      }, 500);
     } catch (error) {
-      setError('otp', { message: 'Unexpected error occurred. Please try again.' });
+      const errorMessage = 'Unexpected error occurred. Please try again.';
+      setError('otp', { message: errorMessage });
+      Toast.show({
+        type: 'error',
+        text1: 'Verification Failed',
+        text2: errorMessage,
+      });
       console.error('Verification error:', error);
+      reset();
+      inputs[0].current?.focus();
     }
   }
 
   async function onResend() {
     if (resendTimer > 0) return;
+
     try {
-      await resendCode(email as string);
+      const result = await resendCode(email as string);
+
+      if (result?.error) {
+        Toast.show({
+          type: 'error',
+          text1: 'Resend Failed',
+          text2: result.error,
+        });
+        return;
+      }
+
+      Toast.show({
+        type: 'success',
+        text1: 'Code Sent',
+        text2: 'A new verification code has been sent to your email',
+      });
+
       setResendTimer(30); // 30s cooldown
-    } catch {
-      setError('otp', { message: 'Failed to resend code. Please try again.' });
+      reset();
+      inputs[0].current?.focus();
+    } catch (error) {
+      Toast.show({
+        type: 'error',
+        text1: 'Resend Failed',
+        text2: 'Failed to resend code. Please try again.',
+      });
+      console.error('Resend error:', error);
     }
   }
 
@@ -89,7 +142,7 @@ export default function Verify() {
     <SafeAreaView style={styles.container}>
       {/* Back Button */}
       <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-        <Ionicons name="arrow-back" size={24} color="#4285F4" />
+        <Ionicons name="arrow-back" size={24} color="#4285f4" />
       </TouchableOpacity>
 
       <ScrollView
@@ -190,6 +243,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Poppins_Regular',
     fontSize: 16,
     lineHeight: 24,
+    textAlign: 'center',
   },
   email: {
     color: '#1976d2',
@@ -199,12 +253,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 12,
     justifyContent: 'space-between',
-    marginBottom: 16,
+    marginVertical: 20,
   },
   otpInput: {
     alignItems: 'center',
     backgroundColor: '#fff',
     borderRadius: 16,
+    borderWidth: 2,
+    borderColor: '#e0e0e0',
     color: '#1e293b',
     elevation: 2,
     fontFamily: 'Poppins',
@@ -220,11 +276,9 @@ const styles = StyleSheet.create({
   },
   otpInputFilled: {
     borderColor: '#4285F4',
-    borderWidth: 2,
   },
   otpInputError: {
     borderColor: '#e53e3e',
-    borderWidth: 2,
   },
   errorText: {
     color: '#e53e3e',
@@ -235,13 +289,13 @@ const styles = StyleSheet.create({
   },
   verifyButton: {
     alignItems: 'center',
-    backgroundColor: '#4285F4',
+    backgroundColor: '#4285f4',
     borderRadius: 16,
     elevation: 4,
     height: 56,
     justifyContent: 'center',
     marginTop: 24,
-    shadowColor: '#4285F4',
+    shadowColor: '#4285f4',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -272,6 +326,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   resendLinkDisabled: {
-    opacity: 0.7,
+    opacity: 0.5,
   },
 });
