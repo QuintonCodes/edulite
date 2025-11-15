@@ -6,6 +6,8 @@ import React from 'react';
 
 import Profile from '@/app/(tabs)/profile';
 import { useAuth } from '@/contexts/auth-context';
+import { useMyCourses } from '@/hooks/useMyCourses';
+import { useUserAchievements } from '@/hooks/useUserAchievements';
 import { renderWithClient } from '@/utils/test';
 
 jest.mock('expo-router', () => ({
@@ -14,6 +16,14 @@ jest.mock('expo-router', () => ({
 
 jest.mock('@/contexts/auth-context', () => ({
   useAuth: jest.fn(),
+}));
+
+jest.mock('@/hooks/useUserAchievements', () => ({
+  useUserAchievements: jest.fn(),
+}));
+
+jest.mock('@/hooks/useMyCourses', () => ({
+  useMyCourses: jest.fn(),
 }));
 
 jest.mock('expo-image-picker', () => ({
@@ -40,9 +50,7 @@ jest.mock('react-native-safe-area-context', () => ({
 }));
 
 jest.mock('@/contexts/theme-context', () => ({
-  // Mock the Provider to just render its children without any async logic
   ThemeProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-  // Mock the hook to return a stable, default value
   useTheme: () => ({
     theme: 'light', // Or 'dark', whichever you prefer for tests
     setTheme: jest.fn(),
@@ -80,6 +88,16 @@ describe('Profile Screen', () => {
         user: null,
         updateUser: jest.fn(),
       });
+      (useUserAchievements as jest.Mock).mockReturnValue({
+        data: [],
+        isLoading: false,
+        isError: false,
+      });
+      (useMyCourses as jest.Mock).mockReturnValue({
+        data: [],
+        isLoading: false,
+        isError: false,
+      });
 
       renderWithClient(<Profile />);
 
@@ -93,6 +111,17 @@ describe('Profile Screen', () => {
         isAuthenticated: false,
         user: null,
         updateUser: jest.fn(),
+      });
+      (useUserAchievements as jest.Mock).mockReturnValue({
+        data: [],
+        isLoading: false,
+        isError: false,
+      });
+
+      (useMyCourses as jest.Mock).mockReturnValue({
+        data: [],
+        isLoading: false,
+        isError: false,
       });
 
       renderWithClient(<Profile />);
@@ -108,6 +137,17 @@ describe('Profile Screen', () => {
         isAuthenticated: false,
         user: null,
         updateUser: jest.fn(),
+      });
+      (useUserAchievements as jest.Mock).mockReturnValue({
+        data: [],
+        isLoading: false,
+        isError: false,
+      });
+
+      (useMyCourses as jest.Mock).mockReturnValue({
+        data: [],
+        isLoading: false,
+        isError: false,
       });
 
       renderWithClient(<Profile />);
@@ -125,6 +165,17 @@ describe('Profile Screen', () => {
         user: mockAuthenticatedUser,
         updateUser: jest.fn(),
       });
+      (useUserAchievements as jest.Mock).mockReturnValue({
+        data: [],
+        isLoading: false,
+        isError: false,
+      });
+
+      (useMyCourses as jest.Mock).mockReturnValue({
+        data: [],
+        isLoading: false,
+        isError: false,
+      });
 
       renderWithClient(<Profile />);
 
@@ -139,6 +190,17 @@ describe('Profile Screen', () => {
         user: mockAuthenticatedUser,
         updateUser: jest.fn(),
       });
+      (useUserAchievements as jest.Mock).mockReturnValue({
+        data: [],
+        isLoading: false,
+        isError: false,
+      });
+
+      (useMyCourses as jest.Mock).mockReturnValue({
+        data: [],
+        isLoading: false,
+        isError: false,
+      });
 
       renderWithClient(<Profile />);
 
@@ -151,6 +213,17 @@ describe('Profile Screen', () => {
         user: mockAdminUser,
         updateUser: jest.fn(),
       });
+      (useUserAchievements as jest.Mock).mockReturnValue({
+        data: [],
+        isLoading: false,
+        isError: false,
+      });
+
+      (useMyCourses as jest.Mock).mockReturnValue({
+        data: [],
+        isLoading: false,
+        isError: false,
+      });
 
       renderWithClient(<Profile />);
 
@@ -162,6 +235,17 @@ describe('Profile Screen', () => {
         isAuthenticated: true,
         user: mockAuthenticatedUser,
         updateUser: jest.fn(),
+      });
+      (useUserAchievements as jest.Mock).mockReturnValue({
+        data: [],
+        isLoading: false,
+        isError: false,
+      });
+
+      (useMyCourses as jest.Mock).mockReturnValue({
+        data: [],
+        isLoading: false,
+        isError: false,
       });
 
       renderWithClient(<Profile />);
@@ -180,6 +264,17 @@ describe('Profile Screen', () => {
         user: unverifiedUser,
         updateUser: jest.fn(),
       });
+      (useUserAchievements as jest.Mock).mockReturnValue({
+        data: [],
+        isLoading: false,
+        isError: false,
+      });
+
+      (useMyCourses as jest.Mock).mockReturnValue({
+        data: [],
+        isLoading: false,
+        isError: false,
+      });
 
       renderWithClient(<Profile />);
 
@@ -194,6 +289,17 @@ describe('Profile Screen', () => {
         user: mockAuthenticatedUser,
         updateUser: jest.fn(),
       });
+      (useUserAchievements as jest.Mock).mockReturnValue({
+        data: [],
+        isLoading: false,
+        isError: false,
+      });
+
+      (useMyCourses as jest.Mock).mockReturnValue({
+        data: [],
+        isLoading: false,
+        isError: false,
+      });
 
       renderWithClient(<Profile />);
 
@@ -205,6 +311,17 @@ describe('Profile Screen', () => {
         isAuthenticated: true,
         user: mockAuthenticatedUser,
         updateUser: jest.fn(),
+      });
+      (useUserAchievements as jest.Mock).mockReturnValue({
+        data: [],
+        isLoading: false,
+        isError: false,
+      });
+
+      (useMyCourses as jest.Mock).mockReturnValue({
+        data: [],
+        isLoading: false,
+        isError: false,
       });
 
       renderWithClient(<Profile />);
@@ -222,6 +339,17 @@ describe('Profile Screen', () => {
         isAuthenticated: true,
         user: mockAuthenticatedUser,
         updateUser: jest.fn(),
+      });
+      (useUserAchievements as jest.Mock).mockReturnValue({
+        data: [],
+        isLoading: false,
+        isError: false,
+      });
+
+      (useMyCourses as jest.Mock).mockReturnValue({
+        data: [],
+        isLoading: false,
+        isError: false,
       });
 
       (ImagePicker.requestMediaLibraryPermissionsAsync as jest.Mock).mockResolvedValue({
@@ -244,6 +372,17 @@ describe('Profile Screen', () => {
         user: mockAuthenticatedUser,
         updateUser: updateUserMock,
       });
+      (useUserAchievements as jest.Mock).mockReturnValue({
+        data: [],
+        isLoading: false,
+        isError: false,
+      });
+
+      (useMyCourses as jest.Mock).mockReturnValue({
+        data: [],
+        isLoading: false,
+        isError: false,
+      });
 
       (ImagePicker.requestMediaLibraryPermissionsAsync as jest.Mock).mockResolvedValue({
         status: 'denied',
@@ -264,6 +403,17 @@ describe('Profile Screen', () => {
         isAuthenticated: true,
         user: mockAuthenticatedUser,
         updateUser: updateUserMock,
+      });
+      (useUserAchievements as jest.Mock).mockReturnValue({
+        data: [],
+        isLoading: false,
+        isError: false,
+      });
+
+      (useMyCourses as jest.Mock).mockReturnValue({
+        data: [],
+        isLoading: false,
+        isError: false,
       });
 
       (ImagePicker.requestMediaLibraryPermissionsAsync as jest.Mock).mockResolvedValue({
@@ -301,6 +451,17 @@ describe('Profile Screen', () => {
         user: mockAuthenticatedUser,
         updateUser: updateUserMock,
       });
+      (useUserAchievements as jest.Mock).mockReturnValue({
+        data: [],
+        isLoading: false,
+        isError: false,
+      });
+
+      (useMyCourses as jest.Mock).mockReturnValue({
+        data: [],
+        isLoading: false,
+        isError: false,
+      });
 
       (ImagePicker.requestMediaLibraryPermissionsAsync as jest.Mock).mockResolvedValue({
         status: 'granted',
@@ -323,6 +484,17 @@ describe('Profile Screen', () => {
         isAuthenticated: true,
         user: mockAuthenticatedUser,
         updateUser: updateUserMock,
+      });
+      (useUserAchievements as jest.Mock).mockReturnValue({
+        data: [],
+        isLoading: false,
+        isError: false,
+      });
+
+      (useMyCourses as jest.Mock).mockReturnValue({
+        data: [],
+        isLoading: false,
+        isError: false,
       });
 
       (ImagePicker.requestMediaLibraryPermissionsAsync as jest.Mock).mockResolvedValue({
@@ -355,6 +527,17 @@ describe('Profile Screen', () => {
         user: userWithoutName,
         updateUser: jest.fn(),
       });
+      (useUserAchievements as jest.Mock).mockReturnValue({
+        data: [],
+        isLoading: false,
+        isError: false,
+      });
+
+      (useMyCourses as jest.Mock).mockReturnValue({
+        data: [],
+        isLoading: false,
+        isError: false,
+      });
 
       renderWithClient(<Profile />);
 
@@ -369,6 +552,17 @@ describe('Profile Screen', () => {
         user: userWithoutEmail,
         updateUser: jest.fn(),
       });
+      (useUserAchievements as jest.Mock).mockReturnValue({
+        data: [],
+        isLoading: false,
+        isError: false,
+      });
+
+      (useMyCourses as jest.Mock).mockReturnValue({
+        data: [],
+        isLoading: false,
+        isError: false,
+      });
 
       renderWithClient(<Profile />);
 
@@ -382,6 +576,17 @@ describe('Profile Screen', () => {
         isAuthenticated: true,
         user: userWithoutAvatar,
         updateUser: jest.fn(),
+      });
+      (useUserAchievements as jest.Mock).mockReturnValue({
+        data: [],
+        isLoading: false,
+        isError: false,
+      });
+
+      (useMyCourses as jest.Mock).mockReturnValue({
+        data: [],
+        isLoading: false,
+        isError: false,
       });
 
       renderWithClient(<Profile />);
@@ -399,6 +604,18 @@ describe('Profile Screen', () => {
         updateUser: jest.fn(),
       });
 
+      (useUserAchievements as jest.Mock).mockReturnValue({
+        data: [],
+        isLoading: false,
+        isError: false,
+      });
+
+      (useMyCourses as jest.Mock).mockReturnValue({
+        data: [],
+        isLoading: false,
+        isError: false,
+      });
+
       renderWithClient(<Profile />);
 
       expect(screen.getByText('Moderator')).toBeTruthy();
@@ -411,6 +628,18 @@ describe('Profile Screen', () => {
         isAuthenticated: true,
         user: mockAuthenticatedUser,
         updateUser: jest.fn(),
+      });
+
+      (useUserAchievements as jest.Mock).mockReturnValue({
+        data: [],
+        isLoading: false,
+        isError: false,
+      });
+
+      (useMyCourses as jest.Mock).mockReturnValue({
+        data: [],
+        isLoading: false,
+        isError: false,
       });
 
       renderWithClient(<Profile />);
@@ -432,6 +661,17 @@ describe('Profile Screen', () => {
         user: mockAuthenticatedUser,
         updateUser: updateUserMock,
       });
+      (useUserAchievements as jest.Mock).mockReturnValue({
+        data: [],
+        isLoading: false,
+        isError: false,
+      });
+
+      (useMyCourses as jest.Mock).mockReturnValue({
+        data: [],
+        isLoading: false,
+        isError: false,
+      });
 
       renderWithClient(<Profile />);
 
@@ -446,6 +686,17 @@ describe('Profile Screen', () => {
         isAuthenticated: true,
         user: mockAuthenticatedUser,
         updateUser: updateUserMock,
+      });
+      (useUserAchievements as jest.Mock).mockReturnValue({
+        data: [],
+        isLoading: false,
+        isError: false,
+      });
+
+      (useMyCourses as jest.Mock).mockReturnValue({
+        data: [],
+        isLoading: false,
+        isError: false,
       });
 
       (ImagePicker.requestMediaLibraryPermissionsAsync as jest.Mock).mockResolvedValue({
@@ -469,41 +720,24 @@ describe('Profile Screen', () => {
     });
   });
 
-  // describe('Integration Tests', () => {
-  //   it('maintains UI consistency across different user states', () => {
-  //     const users = [
-  //       mockAuthenticatedUser,
-  //       mockAdminUser,
-  //       { ...mockAuthenticatedUser, name: 'Jane Smith', email: 'jane@example.com' },
-  //     ];
-
-  //     users.forEach((user) => {
-  //       (useAuth as jest.Mock).mockReturnValue({
-  //         isAuthenticated: true,
-  //         user,
-  //         updateUser: jest.fn(),
-  //       });
-
-  //       const { rerender } = renderWithClient(<Profile />);
-
-  //       // All authenticated users should see these sections
-  //       expect(screen.getByText('Profile')).toBeTruthy();
-  //       expect(screen.getByText('Your Achievements')).toBeTruthy();
-  //       expect(screen.getByText('Account Options')).toBeTruthy();
-  //       expect(screen.getByText(/Tutorials/i)).toBeTruthy();
-  //       expect(screen.getByText('Badges Earned')).toBeTruthy();
-
-  //       rerender(<></>);
-  //     });
-  //   });
-  // });
-
   describe('User Interaction Flows', () => {
     it('completes guest-to-login flow', () => {
       (useAuth as jest.Mock).mockReturnValue({
         isAuthenticated: false,
         user: null,
         updateUser: jest.fn(),
+      });
+
+      (useUserAchievements as jest.Mock).mockReturnValue({
+        data: [],
+        isLoading: false,
+        isError: false,
+      });
+
+      (useMyCourses as jest.Mock).mockReturnValue({
+        data: [],
+        isLoading: false,
+        isError: false,
       });
 
       renderWithClient(<Profile />);
@@ -523,6 +757,18 @@ describe('Profile Screen', () => {
         isAuthenticated: true,
         user: mockAuthenticatedUser,
         updateUser: jest.fn(),
+      });
+
+      (useUserAchievements as jest.Mock).mockReturnValue({
+        data: [],
+        isLoading: false,
+        isError: false,
+      });
+
+      (useMyCourses as jest.Mock).mockReturnValue({
+        data: [],
+        isLoading: false,
+        isError: false,
       });
 
       renderWithClient(<Profile />);
