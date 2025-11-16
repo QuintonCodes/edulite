@@ -3,6 +3,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import * as Progress from 'react-native-progress';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useTheme } from '@/contexts/theme-context';
 import { useQuiz } from '@/hooks/useQuiz';
@@ -147,7 +148,7 @@ export default function QuizScreen() {
   }
 
   return (
-    <View style={styles.screen}>
+    <SafeAreaView style={styles.screen}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={handleExit} style={styles.backButton}>
@@ -191,7 +192,7 @@ export default function QuizScreen() {
           />
         )}
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
 

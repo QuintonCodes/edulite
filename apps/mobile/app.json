@@ -41,9 +41,7 @@
       "expo-secure-store",
       "expo-video"
     ],
-    "assetBundlePatterns": [
-      "**/*"
-    ],
+    "assetBundlePatterns": ["**/*"],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true

@@ -16,6 +16,7 @@ import { usePastPapers } from '@/hooks/usePapers';
 import { Colors, darkColors, lightColors } from '@/styles/theme';
 import { uploadService } from '@/utils/apiService';
 import { PastPaper, Quiz } from '@/utils/types';
+import { useQueryClient } from '@tanstack/react-query';
 
 export default function Assessments() {
   const { user } = useAuth();
@@ -28,6 +29,8 @@ export default function Assessments() {
   const [showSubjectDropdown, setShowSubjectDropdown] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isUploading, setIsUploading] = useState(false);
+
+  const queryClient = useQueryClient();
 
   const subjects = [
     'All Subjects',
@@ -94,16 +97,26 @@ export default function Assessments() {
         type: asset.mimeType,
       } as any);
       formData.append('subject', selectedSubject === 'All Subjects' ? 'General' : selectedSubject);
-      formData.append('userId', user?.id ?? ''); // Replace with real auth user ID
+      formData.append('userId', user?.id ?? '');
 
       const response = await uploadService.uploadPastPaper(formData);
 
       if (response.pastPaperUrl) {
-        Toast.show({ type: 'success', text1: 'Upload Complete', text2: `${asset.name} has been added.` });
+        Toast.show({
+          type: 'success',
+          text1: 'Upload Complete',
+          text2: `${asset.name} has been added successfully.`,
+        });
       }
+      await queryClient.invalidateQueries({ queryKey: ['pastPapers'] });
     } catch (error) {
       console.error('Upload error:', error);
-      Toast.show({ type: 'error', text1: 'Upload Failed', text2: (error as Error).message });
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      Toast.show({
+        type: 'error',
+        text1: 'Upload Failed',
+        text2: errorMessage,
+      });
     } finally {
       setIsUploading(false);
     }
