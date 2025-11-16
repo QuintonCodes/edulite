@@ -31,9 +31,15 @@ export async function apiFetch(input: string, config: AxiosRequestConfig = {}) {
 
     return response;
   } catch (error) {
-    if ((error as AxiosError).response?.status === 401) {
+    const axiosError = error as AxiosError;
+
+    if (axiosError.response?.status === 401) {
       const refreshToken = await getRefreshToken();
-      if (!refreshToken) throw error;
+
+      if (!refreshToken) {
+        await SecureStore.deleteItemAsync(ACCESS_KEY);
+        throw error;
+      }
 
       try {
         const refreshResponse = await axios.post<{ accessToken: string; refreshToken?: string }>(
@@ -58,8 +64,16 @@ export async function apiFetch(input: string, config: AxiosRequestConfig = {}) {
 
           return retryResponse;
         }
+
+        throw new Error('Refresh endpoint did not return access token');
       } catch (refreshError) {
-        console.error('Token refresh failed:', refreshError);
+        const refreshAxiosError = refreshError as AxiosError;
+        if (refreshAxiosError.response?.status === 401) {
+          await SecureStore.deleteItemAsync(ACCESS_KEY);
+          await SecureStore.deleteItemAsync(REFRESH_KEY);
+        } else {
+          console.error('Unexpected token refresh error:', refreshError);
+        }
         throw refreshError;
       }
     }
