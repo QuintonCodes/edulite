@@ -4,10 +4,14 @@ import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import * as Progress from 'react-native-progress';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Toast from 'react-native-toast-message';
 
+import { useAuth } from '@/contexts/auth-context';
 import { useTheme } from '@/contexts/theme-context';
 import { useQuiz } from '@/hooks/useQuiz';
 import { Colors, darkColors, lightColors } from '@/styles/theme';
+import { getNewlyEarnedAchievements } from '@/utils/achievementSystem';
+import { awardXP, XP_REWARDS } from '@/utils/levelSystem';
 
 type QuizQuestion = {
   id: number;
@@ -29,6 +33,7 @@ export default function QuizScreen() {
   const colors = theme === 'dark' ? darkColors : lightColors;
   const styles = getStyles(colors);
 
+  const { user, updateUser } = useAuth();
   const { data: quizData, isLoading, isError, refetch } = useQuiz(id, type);
 
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -43,7 +48,6 @@ export default function QuizScreen() {
 
   useEffect(() => {
     if (quizData && !isLoading && !isError) {
-      // Reset local state when new quiz data is loaded
       setCurrentQuestionIndex(0);
       setSelectedAnswers([]);
       setQuizCompleted(false);
@@ -82,6 +86,86 @@ export default function QuizScreen() {
     setSelectedAnswers(newAnswers);
   }
 
+  function handleQuizCompletion() {
+    // Only award if user is logged in
+    if (!user || !user.id) return;
+
+    // 1. Calculate score
+    const score = calculateQuizScore();
+    const isPerfect = score.percentage === 100;
+
+    // 2. Calculate XP
+    let xpGained = XP_REWARDS.COMPLETE_QUIZ;
+    if (isPerfect) {
+      xpGained += XP_REWARDS.PERFECT_QUIZ;
+    }
+
+    // 3. Get old stats for achievement comparison
+    const oldStats = {
+      ...user,
+      totalXP: user.xp || 0,
+      level: user.level || 1,
+      quizzesCompleted: user.quizzesCompleted || 0,
+      perfectQuizzes: user.perfectQuizzes || 0,
+    };
+
+    // 4. Calculate new XP and Level
+    const { newXP, leveledUp, newLevel } = awardXP(oldStats.totalXP, xpGained);
+
+    // 5. Get new stats, incrementing quiz counters
+    const newStats = {
+      ...oldStats,
+      totalXP: newXP,
+      level: newLevel || oldStats.level,
+      quizzesCompleted: oldStats.quizzesCompleted + 1,
+      perfectQuizzes: oldStats.perfectQuizzes + (isPerfect ? 1 : 0),
+    };
+
+    // 6. Check for new achievements
+    const newAchievements = getNewlyEarnedAchievements(oldStats, newStats);
+    const newAchievementIds = newAchievements.map((a) => a.id);
+    const allAchievementIds = [...(user.earnedAchievements || []), ...newAchievementIds];
+
+    // 7. Update user in global auth state
+    // We update all stats, including the new counters for future checks
+    updateUser({
+      xp: newXP,
+      level: newStats.level,
+      quizzesCompleted: newStats.quizzesCompleted,
+      perfectQuizzes: newStats.perfectQuizzes,
+      earnedAchievements: allAchievementIds,
+    });
+
+    // 8. Show toasts
+    Toast.show({
+      type: 'success',
+      text1: 'Quiz Completed!',
+      text2: `You earned +${xpGained} XP!`,
+    });
+
+    if (leveledUp && newLevel) {
+      setTimeout(() => {
+        Toast.show({
+          type: 'info',
+          text1: 'Level Up!',
+          text2: `You reached Level ${newLevel}!`,
+          visibilityTime: 4000,
+        });
+      }, 500);
+    }
+
+    if (newAchievements.length > 0) {
+      setTimeout(() => {
+        Toast.show({
+          type: 'info',
+          text1: 'Achievement Unlocked!',
+          text2: newAchievements[0].title, // Show the first new achievement
+          visibilityTime: 4000,
+        });
+      }, 1000);
+    }
+  }
+
   function handleNextQuestion() {
     if (!quizData) return;
 
@@ -90,6 +174,7 @@ export default function QuizScreen() {
     } else {
       setEndTime(Date.now());
       setQuizCompleted(true);
+      handleQuizCompletion();
     }
   }
 
@@ -113,6 +198,14 @@ export default function QuizScreen() {
   }
 
   function handleResetQuiz() {
+    setCurrentQuestionIndex(0);
+    setSelectedAnswers([]);
+    setQuizCompleted(false);
+
+    setElapsedTime(0);
+    setEndTime(null);
+    setStartTime(Date.now());
+
     refetch();
   }
 

@@ -1,54 +1,45 @@
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
-import { VideoView } from 'expo-video';
-import { useEffect, useState } from 'react';
-import { ActivityIndicator, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useState } from 'react';
+import { ActivityIndicator, Image, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import * as Progress from 'react-native-progress';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Toast from 'react-native-toast-message';
+import YoutubeIframe from 'react-native-youtube-iframe';
 
 import { useAuth } from '@/contexts/auth-context';
 import { useTheme } from '@/contexts/theme-context';
 import { useTutorials } from '@/hooks/useTutorials';
 import { useVideoProgress } from '@/hooks/useVideoProgress';
 import { Colors, darkColors, lightColors } from '@/styles/theme';
-import { progressService } from '@/utils/apiService';
-import { XP_REWARDS } from '@/utils/levelSystem';
+import { getNewlyEarnedAchievements } from '@/utils/achievementSystem';
+import { awardXP, XP_REWARDS } from '@/utils/levelSystem';
 import { Tutorial } from '@/utils/types';
-import Toast from 'react-native-toast-message';
 
 export default function TutorialDetails() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const params = useLocalSearchParams<{ id: string }>();
+  const id = Array.isArray(params.id) ? params.id[0] : params.id;
+
   const { theme } = useTheme();
   const colors = theme === 'dark' ? darkColors : lightColors;
   const styles = getStyles(colors);
 
   const { user, updateUser } = useAuth();
   const { data: tutorials, isLoading, isError } = useTutorials('All');
-  const [tutorial, setTutorial] = useState<Tutorial | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const { player, progress, setProgress, isCompleted, setIsCompleted } = useVideoProgress({
-    videoUrl: tutorial?.videoUrl || '',
-    tutorialId: id || '',
+  const tutorial = tutorials?.find((t) => String(t.id) === String(id)) || null;
+  const videoId = tutorial?.videoId;
+
+  const { playerRef, onReady, onStateChange, progress, setProgress, isCompleted } = useVideoProgress({
+    videoId,
+    tutorialId: id,
   });
 
-  useEffect(() => {
-    if (!id || !user?.id) return;
-
-    async function fetchProgress() {
-      const { completed } = await progressService.getProgress(id, user?.id);
-      if (completed) {
-        setIsCompleted(true);
-        setProgress(1, false); // Set progress bar to full
-      }
-    }
-    fetchProgress();
-  }, [id, user?.id, setIsCompleted, setProgress]);
-
   async function handleMarkComplete() {
-    if (isCompleted) return; // Already done
+    if (isCompleted || isSubmitting) return;
+
     if (progress < 0.95) {
-      // Not 0.95, but use video progress
       Toast.show({
         type: 'info',
         text1: 'Incomplete Tutorial',
@@ -58,25 +49,77 @@ export default function TutorialDetails() {
       return;
     }
 
-    if (isSubmitting) return; // Prevent double-tap
     setIsSubmitting(true);
 
     try {
-      const result = await progressService.markAsComplete(id, user?.id);
-
-      if (result.error) throw new Error(result.error);
-
+      // 1. Set local progress (this saves to SecureStore via the hook)
       setProgress(1, true);
 
-      if (result.data?.user) {
-        updateUser(result.data.user);
+      // 2. Guard: Only award XP if the user is logged in
+      if (user && user.id) {
+        const xpGained = XP_REWARDS.COMPLETE_TUTORIAL;
+
+        // 3. Get old stats for achievement comparison
+        const oldStats = {
+          ...user,
+          totalXP: user.xp || 0,
+          level: user.level || 1,
+        };
+
+        // 4. Calculate new XP and Level
+        const { newXP, leveledUp, newLevel } = awardXP(oldStats.totalXP, xpGained);
+
+        // 5. Get new stats
+        const newStats = {
+          ...oldStats,
+          totalXP: newXP,
+          level: newLevel || oldStats.level,
+        };
+
+        // 6. Check for new achievements
+        const newAchievements = getNewlyEarnedAchievements(oldStats, newStats);
+        const newAchievementIds = newAchievements.map((a) => a.id);
+        const allAchievementIds = [...(user.earnedAchievements || []), ...newAchievementIds];
+
+        // 7. Update user in global auth state
+        updateUser({
+          xp: newXP,
+          level: newStats.level,
+          earnedAchievements: allAchievementIds,
+        });
+
+        // 8. Show success toast
         Toast.show({
           type: 'success',
           text1: 'Tutorial Completed!',
-          text2: `You earned +${result.data?.xpAwarded || XP_REWARDS.COMPLETE_TUTORIAL} XP!`,
+          text2: `You earned +${xpGained} XP!`,
         });
+
+        // 9. Show level up toast (if any)
+        if (leveledUp && newLevel) {
+          setTimeout(() => {
+            Toast.show({
+              type: 'info',
+              text1: 'Level Up!',
+              text2: `You reached Level ${newLevel}!`,
+              visibilityTime: 4000,
+            });
+          }, 500); // 0.5s delay
+        }
+
+        // 10. Show achievement toast (if any)
+        if (newAchievements.length > 0) {
+          setTimeout(() => {
+            Toast.show({
+              type: 'info',
+              text1: 'Achievement Unlocked!',
+              text2: newAchievements[0].title,
+              visibilityTime: 4000,
+            });
+          }, 1000); // 1s delay
+        }
       } else {
-        // This happens if they just completed it (no new XP)
+        // Not logged in, just show a simple "completed" message
         Toast.show({ type: 'success', text1: 'Tutorial Completed!' });
       }
     } catch (error) {
@@ -92,14 +135,7 @@ export default function TutorialDetails() {
     return tutorials.filter((t) => t.subject === tutorial.subject && String(t.id) !== String(id)).slice(0, 3);
   }
 
-  useEffect(() => {
-    if (tutorials && id) {
-      const match = tutorials.find((t) => String(t.id) === String(id));
-      setTutorial(match || null);
-    }
-  }, [tutorials, id]);
-
-  if (isLoading) {
+  if (isLoading || !id) {
     return (
       <View style={styles.center}>
         <ActivityIndicator size="large" color={colors.accent} />
@@ -108,10 +144,21 @@ export default function TutorialDetails() {
     );
   }
 
-  if (isError || !tutorial) {
+  if (isError) {
     return (
       <View style={styles.center}>
         <Text style={styles.errorText}>Unable to load this tutorial. Please try again.</Text>
+        <TouchableOpacity onPress={() => router.back()} style={styles.retryButton}>
+          <Text style={styles.retryText}>Go Back</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  if (!tutorial) {
+    return (
+      <View style={styles.center}>
+        <Text style={styles.errorText}>Tutorial not found.</Text>
         <TouchableOpacity onPress={() => router.back()} style={styles.retryButton}>
           <Text style={styles.retryText}>Go Back</Text>
         </TouchableOpacity>
@@ -137,8 +184,18 @@ export default function TutorialDetails() {
         {/* Video Player */}
         <View style={styles.videoCard}>
           <View style={styles.videoContainer}>
-            {tutorial.videoUrl && player ? (
-              <VideoView style={styles.video} player={player} nativeControls contentFit="contain" />
+            {tutorial.videoId ? (
+              <YoutubeIframe
+                ref={playerRef}
+                height={220}
+                width={Platform.OS === 'web' ? '100%' : undefined}
+                videoId={tutorial.videoId}
+                play={false} // Don't autoplay
+                onChangeState={onStateChange}
+                onReady={onReady}
+                // webViewStyle fixes a flicker bug on android
+                webViewStyle={{ opacity: 0.99 }}
+              />
             ) : tutorial.image ? (
               <Image source={{ uri: tutorial.image }} style={styles.video} />
             ) : (
@@ -166,7 +223,7 @@ export default function TutorialDetails() {
           </View>
 
           {/* Progress Tracker */}
-          {tutorial.videoUrl && (
+          {tutorial.videoId && (
             <View style={styles.progressSection}>
               <View style={styles.progressHeader}>
                 <Text style={styles.progressTitle}>Your Progress</Text>

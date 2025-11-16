@@ -98,7 +98,7 @@ export type Tutorial = {
   instructor: string;
   duration: string;
   image: string;
-  videoUrl: string;
+  videoId: string;
   objectives: string[];
   description: string;
   createdAt: string;
