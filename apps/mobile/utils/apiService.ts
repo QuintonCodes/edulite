@@ -101,7 +101,8 @@ export const authService = {
   async deleteAccount(userId?: string): Promise<{ success?: boolean; error?: string }> {
     try {
       if (!userId) throw new Error('User ID is required');
-      await axios.delete(`${API_BASE}/users/${userId}`);
+
+      await axios.delete(`${API_BASE}/users/${userId}?userId=${userId}`);
       // Logout logic after successful deletion
       await SecureStore.deleteItemAsync('accessToken');
       await SecureStore.deleteItemAsync('refreshToken');
@@ -129,7 +130,10 @@ export const profileService = {
 
   async updateProfile(data: Partial<User>, userId?: string): Promise<{ user?: User; error?: string }> {
     try {
-      const response = await axios.put<{ message: string; user: User }>(`${API_BASE}/users/${userId}`, data);
+      const response = await axios.put<{ message: string; user: User }>(
+        `${API_BASE}/users/${userId}?userId=${userId}`,
+        data,
+      );
       return { user: response.data.user };
     } catch (error: any) {
       return { error: handleError(error, 'Profile update failed') };

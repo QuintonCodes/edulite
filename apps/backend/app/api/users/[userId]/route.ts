@@ -7,7 +7,6 @@ const editProfileSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   email: z.string().email('Invalid email address'),
   password: z.string().min(6, 'Password must be at least 6 characters').optional(),
-  role: z.enum(['student', 'teacher', 'admin']),
 });
 
 export async function PUT(request: NextRequest) {
@@ -28,7 +27,7 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: errors }, { status: 400 });
     }
 
-    const { name, email, password, role } = validatedData.data;
+    const { name, email, password } = validatedData.data;
 
     const hashedPassword = password ? await hashPassword(password) : undefined;
 
@@ -38,7 +37,6 @@ export async function PUT(request: NextRequest) {
         name,
         email,
         password: hashedPassword,
-        role,
       },
     });
 

@@ -43,7 +43,7 @@ export default function EditAccount() {
         delete payload.password;
       }
 
-      const result = await profileService.updateProfile(data, user?.id);
+      const result = await profileService.updateProfile(data, user?.id ?? '');
 
       if (result.error) {
         setError('root', { type: 'server', message: result.error });

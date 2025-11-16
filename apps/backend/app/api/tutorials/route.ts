@@ -8,7 +8,7 @@ type Tutorial = {
   instructor: string;
   duration: string;
   image: string;
-  videoUrl: string;
+  videoId: string;
   objectives: string[];
   description: string;
   createdAt: string;
@@ -22,8 +22,8 @@ const mockTutorials: Tutorial[] = [
     title: 'Calculus Grade 12 Tangent',
     instructor: 'Kevinmathscience',
     duration: '10 min',
-    image: 'https://images.unsplash.com/photo-1509228468518-180dd4864904?w=400',
-    videoUrl: 'http://www.youtube.com/watch?v=GLn81ACy_a4',
+    image: 'https://images.unsplash.com/photo-1509228468518-180dd4864904?q=80&w=400',
+    videoId: 'GLn81ACy_a4',
     objectives: [
       'Understand the concept of a derivative as a gradient',
       'Find the equation of a tangent line',
@@ -40,8 +40,8 @@ const mockTutorials: Tutorial[] = [
     title: 'Grade 11 Newton Laws: Newtons 2nd law',
     instructor: 'Kevinmathscience',
     duration: '8 min',
-    image: 'https://images.unsplash.com/photo-1633515403006-06f02888c3a9?w=400', // Doesn't show
-    videoUrl: 'https://youtu.be/zxB1wmwEIr0?si=gpoEjxI-uWnPAiLw',
+    image: 'https://images.unsplash.com/photo-1636466497217-26a8cbeaf0aa?q=80&w=400',
+    videoId: 'zxB1wmwEIr0',
     objectives: [
       "Define Newton's Second Law of Motion",
       'Understand the relationship between net force, mass, and acceleration',
@@ -58,8 +58,8 @@ const mockTutorials: Tutorial[] = [
     title: 'Human Evolution - Grade 12 Life Sciences (Part 1)',
     instructor: 'Tourmaline Tutoring',
     duration: '25 min',
-    image: 'https://images.unsplash.com/photo-1605792651479-d52c1f10da48?w=400', // Doesn't show
-    videoUrl: 'http://www.youtube.com/watch?v=McYAit5ilcs',
+    image: 'https://images.unsplash.com/photo-1532187863486-abf9dbad1b69?q=80&w=400',
+    videoId: 'McYAit5ilcs',
     objectives: [
       'Interpret phylogenetic trees',
       'Identify key anatomical differences between humans and apes',
@@ -76,8 +76,8 @@ const mockTutorials: Tutorial[] = [
     title: 'Grade 10 Geography | Composition & Structure of the Atmosphere',
     instructor: 'Andrew Nkumanda',
     duration: '17 min',
-    image: 'https://images.unsplash.com/photo-1542662565-7e4b66bae529?w=400',
-    videoUrl: 'http://www.youtube.com/watch?v=f6xMvZrUpLo',
+    image: 'https://images.unsplash.com/photo-1521295121783-8a321d551ad2?q=80&w=400',
+    videoId: 'f6xMvZrUpLo',
     objectives: [
       'List the layers of the atmosphere',
       'Describe the characteristics of the Troposphere and Stratosphere',
@@ -94,8 +94,8 @@ const mockTutorials: Tutorial[] = [
     title: 'Grade 10 Accounting | Accounting equation',
     instructor: 'Accounting Solution SA',
     duration: '17 min',
-    image: 'https://images.unsplash.com/photo-1554224155-16a57c2180f2?w=400', // Doesn't show
-    videoUrl: 'http://www.youtube.com/watch?v=kpL2u4vFdMQ',
+    image: 'https://images.unsplash.com/photo-1554224154-26032ffc0d07?q=80&w=400',
+    videoId: 'kpL2u4vFdMQ',
     objectives: [
       'Understand the basic accounting equation: A = OE + L',
       'Identify accounts as Assets, Owners Equity, or Liabilities',
@@ -112,8 +112,8 @@ const mockTutorials: Tutorial[] = [
     title: 'Macbeth: Summary (Memorise & Recall)',
     instructor: 'Dr Aidan',
     duration: '12 min',
-    image: 'https://images.unsplash.com/photo-1544502577-3e5c533e44c8?w=400', // Doesn't show
-    videoUrl: 'http://www.youtube.com/watch?v=qxtmb0m38lI',
+    image: 'https://images.unsplash.com/photo-1529167182942-894f5ff43f34?q=80&w=400',
+    videoId: 'qxtmb0m38lI',
     objectives: [
       'Recall the main plot points of Macbeth, act by act',
       'Identify key themes like "Appearance vs. Reality"',

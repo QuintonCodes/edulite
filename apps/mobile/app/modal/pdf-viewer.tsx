@@ -13,8 +13,11 @@ export default function PdfViewerModal() {
   const colors = theme === 'dark' ? darkColors : lightColors;
   const styles = getStyles(colors);
 
-  // Google Docs viewer is a great fallback for web and Android
-  const pdfUrl = Platform.OS === 'ios' ? url : `https://docs.google.com/gview?embedded=true&url=${url}`;
+  const encodedUrl = encodeURIComponent(url);
+  const pdfUrl =
+    Platform.OS === 'ios'
+      ? url // iOS WebView can handle direct PDF links
+      : `https://docs.google.com/gview?embedded=true&url=${encodedUrl}`;
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={['top', 'left', 'right']}>
@@ -23,7 +26,14 @@ export default function PdfViewerModal() {
           <Ionicons name="close-circle" size={30} color={colors.accent} />
         </TouchableOpacity>
       </View>
-      <WebView source={{ uri: pdfUrl }} style={{ flex: 1 }} />
+
+      <WebView
+        originWhitelist={['*']} // Allows all URLs
+        javaScriptEnabled={true} // Needed for the Google viewer
+        domStorageEnabled={true} // Needed for the Google viewer
+        source={{ uri: pdfUrl }}
+        style={{ flex: 1, backgroundColor: colors.background }}
+      />
     </SafeAreaView>
   );
 }

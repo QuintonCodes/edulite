@@ -330,18 +330,20 @@ export default function Assessments() {
           </View>
         ) : (
           <View style={styles.papersContainer}>
-            <TouchableOpacity
-              style={[styles.uploadButton, isUploading && styles.uploadButtonDisabled]}
-              onPress={handleUpload}
-              disabled={isUploading}
-            >
-              {isUploading ? (
-                <ActivityIndicator size="small" color={colors.primary} />
-              ) : (
-                <Ionicons name="cloud-upload-outline" size={18} color={colors.primary} />
-              )}
-              <Text style={styles.uploadButtonText}>{isUploading ? 'Uploading...' : 'Upload Past Paper'}</Text>
-            </TouchableOpacity>
+            {user?.role !== 'student' && (
+              <TouchableOpacity
+                style={[styles.uploadButton, isUploading && styles.uploadButtonDisabled]}
+                onPress={handleUpload}
+                disabled={isUploading}
+              >
+                {isUploading ? (
+                  <ActivityIndicator size="small" color={colors.primary} />
+                ) : (
+                  <Ionicons name="cloud-upload-outline" size={18} color={colors.primary} />
+                )}
+                <Text style={styles.uploadButtonText}>{isUploading ? 'Uploading...' : 'Upload Past Paper'}</Text>
+              </TouchableOpacity>
+            )}
             <View style={styles.papersList}>
               {renderContent(isLoadingPapers, filteredPapers, renderPastPaper, 'No past papers found.')}
             </View>

@@ -166,7 +166,7 @@ model Notification {
 
 model PastPaper {
   id         String   @id @default(cuid())
-  fileName   String
+  fileName   String @unique
   subject    String
   url        String
   publicId   String   @unique

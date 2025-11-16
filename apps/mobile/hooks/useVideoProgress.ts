@@ -1,33 +1,38 @@
 import * as SecureStore from 'expo-secure-store';
-import { createVideoPlayer, VideoPlayer } from 'expo-video';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { AppState } from 'react-native';
+import type { YoutubeIframeRef } from 'react-native-youtube-iframe';
 
-export function useVideoProgress({ videoUrl, tutorialId }: { videoUrl: string; tutorialId: string }) {
-  const [player, setPlayer] = useState<VideoPlayer | null>(null);
+export function useVideoProgress({
+  videoId,
+  tutorialId,
+}: {
+  videoId: string | undefined;
+  tutorialId: string | undefined;
+}) {
+  const playerRef = useRef<YoutubeIframeRef>(null);
+  const progressIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const lastSavedTimeRef = useRef(0);
+
   const [progress, setProgressState] = useState(0);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
   const [isCompleted, setIsCompleted] = useState(false);
+  const [isPlayerReady, setIsPlayerReady] = useState(false);
+  const [initialTime, setInitialTime] = useState(0);
 
-  const isReleasedRef = useRef(false);
-  const playerRef = useRef<VideoPlayer | null>(null);
-  const lastSavedProgress = useRef(0);
-  const lastSavedTime = useRef(0);
-
-  // Load completion status and progress on mount
+  // 1. Load progress from storage on mount
   useEffect(() => {
     if (!tutorialId) return;
 
     (async () => {
       try {
         const completedStatus = await SecureStore.getItemAsync(`completed_${tutorialId}`);
-        const savedProgress = await SecureStore.getItemAsync(`progress_${tutorialId}`);
 
         if (completedStatus === 'true') {
           setIsCompleted(true);
           setProgressState(1);
-        } else if (savedProgress) {
-          setProgressState(parseFloat(savedProgress));
+        } else {
+          const savedTime = await SecureStore.getItemAsync(`time_${tutorialId}`);
+          setInitialTime(parseFloat(savedTime || '0'));
         }
       } catch (error) {
         console.warn('Error loading completion status:', error);
@@ -35,167 +40,80 @@ export function useVideoProgress({ videoUrl, tutorialId }: { videoUrl: string; t
     })();
   }, [tutorialId]);
 
-  // Initialize the video player
+  // 2. Clear interval when component unmounts
   useEffect(() => {
-    if (!videoUrl) {
-      setPlayer(null);
-      return;
-    }
+    return () => {
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+      }
+    };
+  }, []);
 
-    isReleasedRef.current = false;
-    const videoPlayer = createVideoPlayer({ uri: videoUrl });
-    if (videoPlayer) {
-      videoPlayer.loop = false;
-      playerRef.current = videoPlayer;
-      setPlayer(videoPlayer);
-    }
+  // 3. Pause video when app goes to background
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (nextAppState) => {
+      if (nextAppState.match(/inactive|background/)) {
+        playerRef.current?.seekTo(0, true); // Pause video
+      }
+    });
 
     return () => {
-      isReleasedRef.current = true;
-
-      const currentPlayer = playerRef.current;
-      if (currentPlayer) {
-        try {
-          currentPlayer.pause();
-          currentPlayer.release();
-        } catch (error) {
-          console.warn('Video player cleanup warning:', error);
-        }
-        playerRef.current = null;
-      }
-
-      setPlayer(null);
+      subscription.remove();
     };
-  }, [videoUrl]);
+  }, []);
 
-  // Load saved time and seek to it
-  useEffect(() => {
-    if (!playerRef.current || isReleasedRef.current || !tutorialId || isCompleted) return;
-
-    let checkReady: ReturnType<typeof setInterval> | null = null;
-
-    (async () => {
-      try {
-        const savedTime = await SecureStore.getItemAsync(`time_${tutorialId}`);
-
-        if (isReleasedRef.current) return;
-
-        if (savedTime && playerRef.current && !isReleasedRef.current) {
-          const time = parseFloat(savedTime);
-          setCurrentTime(time);
-          lastSavedTime.current = time;
-
-          checkReady = setInterval(() => {
-            const currentPlayer = playerRef.current;
-            if (isReleasedRef.current || !currentPlayer) {
-              if (checkReady) clearInterval(checkReady);
-              return;
-            }
-
-            try {
-              if (currentPlayer.duration > 0) {
-                currentPlayer.currentTime = time;
-                if (checkReady) clearInterval(checkReady);
-              }
-            } catch {
-              if (checkReady) clearInterval(checkReady);
-            }
-          }, 200);
-        }
-      } catch (error) {
-        console.warn('Error loading progress:', error);
-      }
-    })();
-
-    return () => {
-      if (checkReady) clearInterval(checkReady);
-    };
-  }, [tutorialId, player, isCompleted]);
-
-  // Save progress and time periodically
-  useEffect(() => {
-    if (!tutorialId || isCompleted) return;
-
-    const saveInterval = setInterval(async () => {
-      // Only save if progress or time has changed significantly
-      if (Math.abs(progress - lastSavedProgress.current) > 0.01 || Math.abs(currentTime - lastSavedTime.current) > 2) {
-        try {
-          await SecureStore.setItemAsync(`progress_${tutorialId}`, progress.toString());
-          await SecureStore.setItemAsync(`time_${tutorialId}`, currentTime.toString());
-          lastSavedProgress.current = progress;
-          lastSavedTime.current = currentTime;
-        } catch (error) {
-          console.warn('Error saving progress:', error);
-        }
-      }
-    }, 3000); // every 3 seconds
-
-    return () => clearInterval(saveInterval);
-  }, [currentTime, progress, tutorialId, isCompleted]);
-
-  // Track video progress
-  useEffect(() => {
-    if (!playerRef.current || isReleasedRef.current) return;
-
-    let progressInterval: ReturnType<typeof setInterval> | null = null;
-    let listenerRef: { remove: () => void } | null = null;
-
-    function updateProgress() {
-      const currentPlayer = playerRef.current;
-      if (isReleasedRef.current || !currentPlayer) {
-        if (progressInterval) clearInterval(progressInterval);
-        return;
-      }
-
-      try {
-        const duration = player?.duration ?? 0;
-        const current = player?.currentTime ?? 0;
-
-        setDuration(duration);
-        setCurrentTime(current);
-
-        if (duration > 0 && !isCompleted) setProgressState(current / duration);
-      } catch {
-        if (progressInterval) {
-          clearInterval(progressInterval);
-          progressInterval = null;
-        }
-      }
+  const onReady = useCallback(() => {
+    setIsPlayerReady(true);
+    if (initialTime > 0) {
+      playerRef.current?.seekTo(initialTime, true);
     }
+  }, [initialTime]);
 
-    progressInterval = setInterval(updateProgress, 500); // update every 0.5s
-
-    // Listen for when the video ends
-    try {
-      const currentPlayer = playerRef.current;
-      if (currentPlayer) {
-        listenerRef = currentPlayer.addListener('playToEnd', () => {
-          if (isReleasedRef.current || !playerRef.current) return;
-          setProgressState(1);
+  // 5. Player 'onChangeState' callback (the core logic)
+  const onStateChange = useCallback(
+    (state: string) => {
+      if (state === 'playing') {
+        // Start polling for progress
+        progressIntervalRef.current = setInterval(async () => {
           try {
-            setCurrentTime(playerRef.current.duration ?? 0);
-          } catch (error) {
-            console.warn('playToEnd handler error:', error);
-          }
-        });
-      }
-    } catch (error) {
-      console.warn('Failed to add playToEnd listener:', error);
-    }
+            const [currentTime, duration] = await Promise.all([
+              playerRef.current?.getCurrentTime(),
+              playerRef.current?.getDuration(),
+            ]);
 
-    return () => {
-      if (progressInterval) {
-        clearInterval(progressInterval);
-      }
-      if (listenerRef) {
-        try {
-          listenerRef.remove();
-        } catch (error) {
-          console.warn('Error removing listener:', error);
+            if (currentTime !== undefined && duration !== undefined && duration > 0) {
+              // Save time to secure store (throttled)
+              if (Math.abs(currentTime - lastSavedTimeRef.current) > 3) {
+                await SecureStore.setItemAsync(`time_${tutorialId}`, currentTime.toString());
+                lastSavedTimeRef.current = currentTime;
+              }
+              // Update progress state
+              if (!isCompleted) {
+                setProgressState(currentTime / duration);
+              }
+            }
+          } catch (error) {
+            console.warn('Error polling video progress:', error);
+          }
+        }, 500);
+      } else {
+        // Clear interval if paused, ended, etc.
+        if (progressIntervalRef.current) {
+          clearInterval(progressIntervalRef.current);
         }
       }
-    };
-  }, [player, isCompleted]);
+
+      if (state === 'ended') {
+        setProgressState(1);
+        if (!isCompleted) {
+          // Don't call setProgress, just update local state
+          setIsCompleted(true);
+          SecureStore.setItemAsync(`completed_${tutorialId}`, 'true');
+        }
+      }
+    },
+    [isCompleted, tutorialId],
+  );
 
   async function setProgress(newProgress: number, markComplete: boolean = false) {
     setProgressState(newProgress);
@@ -215,13 +133,13 @@ export function useVideoProgress({ videoUrl, tutorialId }: { videoUrl: string; t
   }
 
   return {
-    player,
+    playerRef,
+    onReady,
+    onStateChange,
     progress,
     setProgress,
-    currentTime,
-    duration,
-    setCurrentTime,
     isCompleted,
     setIsCompleted,
+    isPlayerReady,
   };
 }
