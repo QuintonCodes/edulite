@@ -41,10 +41,18 @@
       "expo-secure-store",
       "expo-video"
     ],
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "110c043a-644e-4708-b991-040e4d4b4492"
+      }
     }
   }
 }
