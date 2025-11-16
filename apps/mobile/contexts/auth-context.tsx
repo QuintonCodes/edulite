@@ -220,16 +220,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     ),
   );
 
-  const { data, isLoading, isSuccess } = useSessionQuery();
+  const { data, isLoading, isSuccess, isError, error } = useSessionQuery();
 
   useEffect(() => {
+    if (isLoading) {
+      return;
+    }
     if (isSuccess && data.user) {
       store.getState().setUser(data.user);
       store.getState().checkDailyLogin();
-    } else if (!isLoading && !data) {
+    } else if (isError) {
+      store.getState().setUser(null);
+      const is401 = (error as any)?.response?.status === 401;
+      if (!is401) {
+        console.warn('Unexpected session error:', error);
+      }
+    } else if (!data) {
       store.getState().setUser(null);
     }
-  }, [data, isLoading, isSuccess, store]);
+  }, [data, isLoading, isSuccess, isError, error, store]);
 
   return <AuthContext.Provider value={store}>{children}</AuthContext.Provider>;
 }
