@@ -9,19 +9,16 @@ const editProfileSchema = z.object({
   password: z.string().min(6, 'Password must be at least 6 characters').optional(),
 });
 
-export async function PUT(request: NextRequest, { params }: { params: { userId: string } }) {
+export async function PUT(request: NextRequest) {
   try {
-    const userId = params.userId;
+    const url = new URL(request.url);
+    const userId = url.searchParams.get('userId');
 
     if (!userId) {
       return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
     }
 
     const data = await request.json();
-
-    if (data.password === '') {
-      delete data.password;
-    }
 
     const validatedData = editProfileSchema.safeParse(data);
 
@@ -53,9 +50,10 @@ export async function PUT(request: NextRequest, { params }: { params: { userId: 
   }
 }
 
-export async function DELETE(request: NextRequest, { params }: { params: { userId: string } }) {
+export async function DELETE(request: NextRequest) {
   try {
-    const userId = params.userId;
+    const url = new URL(request.url);
+    const userId = url.searchParams.get('userId');
 
     if (!userId) {
       return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
