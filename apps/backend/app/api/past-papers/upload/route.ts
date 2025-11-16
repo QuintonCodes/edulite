@@ -8,7 +8,7 @@ import { db } from '@/lib/db';
 
 const uploadSchema = z.object({
   subject: z.string().min(1, 'Subject is required'),
-  userId: z.string().optional(), // Or min(1) if auth is required
+  userId: z.string().optional(),
 });
 
 export const runtime = 'nodejs';
@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
     const formData = await req.formData();
     const file = formData.get('file') as File | null;
     const subject = formData.get('subject') as string | null;
-    const userId = formData.get('userId') as string | null; // Get this from your auth session
+    const userId = formData.get('userId') as string | null;
 
     // Validate metadata
     const validated = uploadSchema.safeParse({ subject, userId });
@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
       const uploadStream = cloudinary.uploader.upload_stream(
         {
           folder: 'past_papers',
-          resource_type: 'raw', // Use 'raw' for non-media files like PDFs
+          resource_type: 'raw',
           format: 'pdf',
         },
         (error, result) => {
@@ -62,11 +62,22 @@ export async function POST(req: NextRequest) {
         publicId: uploadResult.public_id,
         fileSize: uploadResult.bytes,
         fileType: 'pdf',
-        uploaderId: userId || null, // Connect to user if ID is provided
+        uploaderId: userId || null,
       },
     });
 
-    return NextResponse.json(newPastPaper, { status: 201 });
+    return NextResponse.json(
+      {
+        id: newPastPaper.id,
+        fileName: newPastPaper.fileName,
+        subject: newPastPaper.subject,
+        url: newPastPaper.url,
+        fileSize: newPastPaper.fileSize,
+        uploadDate: newPastPaper.createdAt.toISOString(),
+        message: 'Upload successful',
+      },
+      { status: 201 },
+    );
   } catch (error) {
     console.error('POST past-paper upload error:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });

@@ -9,6 +9,7 @@ import Toast from 'react-native-toast-message';
 import { toastConfig } from '@/components/custom-toast';
 import { AuthProvider } from '@/contexts/auth-context';
 import { ThemeProvider, useTheme } from '@/contexts/theme-context';
+import { ThemeSync } from '@/contexts/theme-sync';
 import { darkColors, lightColors } from '@/styles/theme';
 
 SplashScreen.preventAutoHideAsync();
@@ -44,6 +45,7 @@ export default function RootLayout() {
       <ThemeProvider>
         <AuthProvider>
           <RootLayoutNav />
+          <ThemeSync />
           <Toast config={toastConfig} />
         </AuthProvider>
       </ThemeProvider>

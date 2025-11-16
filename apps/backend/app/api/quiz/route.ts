@@ -19,12 +19,9 @@ type QuizData = {
   duration: string;
 };
 
-// --- THE UNIVERSAL QUIZ BANK ---
-// All quizzes live here. The key (e.g., '1', 'math-g12-calc') is the ID.
 const quizBank: Record<string, QuizData> = {
-  // --- Quizzes matching assessments.tsx (IDs 1-6) ---
-  '1': {
-    id: '1',
+  'assessment-1': {
+    id: 'assessment-1',
     title: 'Introduction to Algebra',
     subject: 'Mathematics',
     difficulty: 'Easy',
@@ -41,8 +38,8 @@ const quizBank: Record<string, QuizData> = {
       },
     ],
   },
-  '2': {
-    id: '2',
+  'assessment-2': {
+    id: 'assessment-2',
     title: 'Cell Biology Fundamentals',
     subject: 'Life Sciences',
     difficulty: 'Medium',
@@ -64,8 +61,8 @@ const quizBank: Record<string, QuizData> = {
       },
     ],
   },
-  '3': {
-    id: '3',
+  'assessment-3': {
+    id: 'assessment-3',
     title: "Newton's Laws of Motion",
     subject: 'Physical Sciences',
     difficulty: 'Hard',
@@ -87,57 +84,220 @@ const quizBank: Record<string, QuizData> = {
       },
     ],
   },
-  '4': {
-    id: '4',
-    title: 'Chemical Bonding',
-    subject: 'Physical Sciences',
-    difficulty: 'Medium',
-    type: 'assessment',
-    description: 'Ionic, covalent, and metallic bonds explained',
-    duration: '25 min',
+
+  '1': {
+    id: '1',
+    title: 'Calculus: Tangents Check',
+    subject: 'Mathematics',
+    difficulty: 'Grade 12',
+    type: 'tutorial',
+    description: 'A quick check on the Calculus Tangents tutorial.',
+    duration: '5 min',
     questions: [
       {
         id: 1,
-        question: 'What type of bond forms between a metal and a non-metal?',
-        options: ['Ionic', 'Covalent', 'Metallic', 'Hydrogen'],
-        correctAnswer: 0,
+        question: "The first derivative, f'(x), represents the...",
+        options: ['...original function', '...gradient of the tangent', '...y-intercept', '...turning point'],
+        correctAnswer: 1,
       },
       {
         id: 2,
-        question: 'Which of these is a nonpolar covalent bond?',
-        options: ['H₂O', 'CO₂', 'O₂', 'NH₃'],
+        question: 'If two lines are perpendicular, their gradients (m1 and m2) have a product of:',
+        options: ['1', '0', '-1', '2'],
         correctAnswer: 2,
+      },
+      {
+        id: 3,
+        question: 'What is the first step to find the equation of a tangent line to a curve y=f(x) at x=a?',
+        options: [
+          'Find the y-intercept',
+          'Set the equation to zero',
+          "Find the first derivative f'(x)",
+          "Find the second derivative f''(x)",
+        ],
+        correctAnswer: 2,
+      },
+    ],
+  },
+  '2': {
+    id: '2',
+    title: "Newton's 2nd Law Check",
+    subject: 'Physical Sciences',
+    difficulty: 'Grade 11',
+    type: 'tutorial',
+    description: "A quick check on the Newton's 2nd Law tutorial.",
+    duration: '5 min',
+    questions: [
+      {
+        id: 1,
+        question: "What is the formula for Newton's Second Law?",
+        options: ['F_net = m/a', 'a = F_net / m', 'm = F_net * a', 'F_net = m + a'],
+        correctAnswer: 1,
+      },
+      {
+        id: 2,
+        question: 'If the net force on an object is zero, the object will...',
+        options: ['...speed up', '...slow down', '...accelerate', '...move at a constant velocity'],
+        correctAnswer: 3,
+      },
+      {
+        id: 3,
+        question: 'If you push a 10kg box with a net force of 50N, what is its acceleration?',
+        options: ['5 m/s²', '0.2 m/s²', '500 m/s²', '10 m/s²'],
+        correctAnswer: 0,
+      },
+    ],
+  },
+  '3': {
+    id: '3',
+    title: 'Human Evolution Check',
+    subject: 'Life Sciences',
+    difficulty: 'Grade 12',
+    type: 'tutorial',
+    description: 'A quick check on the Human Evolution tutorial.',
+    duration: '5 min',
+    questions: [
+      {
+        id: 1,
+        question: 'A phylogenetic tree is a diagram that shows...',
+        options: [
+          '...family relationships',
+          '...evolutionary relationships between species',
+          '...food webs',
+          '...anatomical diagrams',
+        ],
+        correctAnswer: 1,
+      },
+      {
+        id: 2,
+        question: 'Which anatomical feature is a key indicator of bipedalism in a hominid skull?',
+        options: [
+          'Large canine teeth',
+          'A prominent brow ridge',
+          'A foramen magnum at the back of the skull',
+          'A foramen magnum at the base of the skull',
+        ],
+        correctAnswer: 3,
+      },
+      {
+        id: 3,
+        question: 'The "Out of Africa" hypothesis suggests that modern humans...',
+        options: [
+          '...evolved in Africa and then migrated to other continents',
+          '...evolved separately in many different continents',
+          '...migrated from Europe to Africa',
+          '...co-existed with dinosaurs in Africa',
+        ],
+        correctAnswer: 0,
+      },
+    ],
+  },
+  '4': {
+    id: '4',
+    title: 'Atmosphere Check',
+    subject: 'Geography',
+    difficulty: 'Grade 10',
+    type: 'tutorial',
+    description: 'A quick check on the Atmosphere tutorial.',
+    duration: '5 min',
+    questions: [
+      {
+        id: 1,
+        question: 'Which layer of the atmosphere do we live in and where does most weather occur?',
+        options: ['Stratosphere', 'Troposphere', 'Mesosphere', 'Thermosphere'],
+        correctAnswer: 1,
+      },
+      {
+        id: 2,
+        question: 'The ozone layer, which absorbs harmful UV radiation, is found in the:',
+        options: ['Troposphere', 'Exosphere', 'Stratosphere', 'Mesosphere'],
+        correctAnswer: 2,
+      },
+      {
+        id: 3,
+        question: "What is the most abundant gas in the Earth's atmosphere?",
+        options: ['Oxygen', 'Carbon Dioxide', 'Argon', 'Nitrogen'],
+        correctAnswer: 3,
       },
     ],
   },
   '5': {
     id: '5',
-    title: 'Grammar and Punctuation',
-    subject: 'English',
-    difficulty: 'Easy',
-    type: 'assessment',
-    description: 'Essential English grammar rules and punctuation usage.',
-    duration: '12 min',
+    title: 'Accounting Equation Check',
+    subject: 'Accounting',
+    difficulty: 'Grade 10',
+    type: 'tutorial',
+    description: 'A quick check on the Accounting Equation tutorial.',
+    duration: '5 min',
     questions: [
       {
         id: 1,
-        question: 'Choose the correct form: "They ___ going to the park."',
-        options: ['is', 'are', 'am', 'be'],
+        question: 'What is the correct basic accounting equation?',
+        options: [
+          'Assets = Liabilities - Owners Equity',
+          'Owners Equity = Assets + Liabilities',
+          'Assets = Owners Equity + Liabilities',
+          'Liabilities = Assets + Owners Equity',
+        ],
+        correctAnswer: 2,
+      },
+      {
+        id: 2,
+        question: 'A vehicle bought by the business is an example of a(n):',
+        options: ['Asset', 'Liability', 'Income', 'Expense'],
+        correctAnswer: 0,
+      },
+      {
+        id: 3,
+        question: 'If a business takes a loan from the bank, what is the effect on the equation?',
+        options: [
+          'Assets decrease, Liabilities decrease',
+          'Assets increase, Liabilities increase',
+          'Assets increase, Owners Equity increases',
+          'Liabilities increase, Owners Equity decreases',
+        ],
         correctAnswer: 1,
       },
     ],
   },
   '6': {
     id: '6',
-    title: 'Trigonometry Advanced',
-    subject: 'Mathematics',
-    difficulty: 'Hard',
-    type: 'assessment',
-    description: 'In-depth trigonometric functions and identities.',
-    duration: '35 min',
+    title: 'Macbeth Summary Check',
+    subject: 'English',
+    difficulty: 'Grade 12',
+    type: 'tutorial',
+    description: 'A quick check on the Macbeth summary tutorial.',
+    duration: '5 min',
     questions: [
-      { id: 1, question: 'What is the value of sin(90°)?', options: ['0', '0.5', '1', '-1'], correctAnswer: 2 },
-      { id: 2, question: 'Simplify: sin²(θ) + cos²(θ)', options: ['0', '1', '2', 'tan²(θ)'], correctAnswer: 1 },
+      {
+        id: 1,
+        question: "What is the witches' prophecy for Macbeth at the beginning of the play?",
+        options: [
+          'He will be Thane of Fife',
+          'He will be Thane of Cawdor and King',
+          'He will be killed by Banquo',
+          'He will have many sons',
+        ],
+        correctAnswer: 1,
+      },
+      {
+        id: 2,
+        question: 'A major theme in the play is "fair is foul, and foul is fair," which relates to:',
+        options: ['...Appearance vs. Reality', '...Love and Friendship', '...Man vs. Nature', '...Justice and Revenge'],
+        correctAnswer: 0,
+      },
+      {
+        id: 3,
+        question: 'Who does Macbeth frame for the murder of King Duncan?',
+        options: ['Macduff', 'Banquo', "Duncan's sons (Malcolm and Donalbain)", "Duncan's guards"],
+        correctAnswer: 3,
+      },
+      {
+        id: 4,
+        question: 'Why is Macduff able to kill Macbeth, despite the prophecy "none of woman born shall harm Macbeth"?',
+        options: ['He is a ghost', 'He was born via Caesarean section', 'He is not a man', 'The witches lied'],
+        correctAnswer: 1,
+      },
     ],
   },
   // --- NEW Grade 10-12 Quizzes ---
@@ -224,36 +384,6 @@ const quizBank: Record<string, QuizData> = {
         question: 'Which of the following is an Asset account?',
         options: ['Capital', 'Creditors Control', 'Bank', 'Sales'],
         correctAnswer: 2,
-      },
-    ],
-  },
-  // --- Tutorial Quizzes (matching previous tutorial IDs) ---
-  'tutorial-1': {
-    id: 'tutorial-1',
-    title: 'Grade 12 Maths Check',
-    subject: 'Mathematics',
-    difficulty: 'Medium',
-    type: 'tutorial',
-    description: 'A quick check on Grade 12 Calculus.',
-    duration: '5 min',
-    questions: [
-      { id: 1, question: 'What is the derivative of x^2?', options: ['2x', 'x', 'x^3', '2'], correctAnswer: 0 },
-    ],
-  },
-  'tutorial-2': {
-    id: 'tutorial-2',
-    title: 'Grade 11 Physics Check',
-    subject: 'Physical Sciences',
-    difficulty: 'Medium',
-    type: 'tutorial',
-    description: 'A quick check on Newtons Laws.',
-    duration: '5 min',
-    questions: [
-      {
-        id: 1,
-        question: "What is Newton's Second Law?",
-        options: ['F=ma', 'E=mc^2', 'v=d/t', 'P=IV'],
-        correctAnswer: 0,
       },
     ],
   },

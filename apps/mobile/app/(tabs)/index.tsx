@@ -214,7 +214,7 @@ export default function Home() {
             showsHorizontalScrollIndicator={false}
             data={newlyAddedTutorials}
             keyExtractor={(item) => item.id}
-            contentContainerStyle={{ gap: 12 }}
+            contentContainerStyle={[styles.flatListContent, { paddingHorizontal: 0 }]}
             renderItem={({ item: tutorial }) => (
               <TouchableOpacity
                 style={styles.newTutorialCard}
@@ -233,8 +233,6 @@ export default function Home() {
           />
         </View>
       )}
-
-      <View style={{ height: 120 }} />
     </>
   );
 
@@ -334,8 +332,8 @@ const getStyles = (colors: Colors) =>
       flex: 1,
     },
     flatListContent: {
-      backgroundColor: colors.background,
       paddingHorizontal: 20,
+      paddingBottom: 60,
       gap: 16,
     },
     header: {
@@ -467,6 +465,7 @@ const getStyles = (colors: Colors) =>
     },
     section: {
       paddingTop: 16,
+      // marginBottom: 16,
     },
     sectionTitle: {
       color: colors.textPrimary,
@@ -536,6 +535,7 @@ const getStyles = (colors: Colors) =>
       shadowOffset: { width: 0, height: 2 },
       shadowOpacity: 0.1,
       shadowRadius: 8,
+      // marginBottom: 16,
     },
     tutorialImage: {
       width: '100%',
@@ -600,7 +600,7 @@ const getStyles = (colors: Colors) =>
       shadowOffset: { width: 0, height: 1 },
       shadowOpacity: 0.08,
       shadowRadius: 6,
-      width: 160, // Fixed width for horizontal list
+      width: 160,
     },
     newTutorialImage: {
       width: '100%',
@@ -626,8 +626,7 @@ const getStyles = (colors: Colors) =>
       borderRadius: 20,
       padding: 20,
       marginHorizontal: 10,
-      marginTop: 20,
-      marginBottom: 40,
+      marginVertical: 20,
       alignItems: 'center',
       shadowColor: '#000',
       shadowOffset: { width: 0, height: 2 },

@@ -8,6 +8,7 @@ type ThemeContextData = {
   theme: Theme;
   toggleTheme: () => void;
   setTheme: (theme: Theme) => void;
+  initializeUserTheme: (userId: string | null) => Promise<void>;
 };
 
 // Create the context with a default value
@@ -19,41 +20,87 @@ type ThemeProviderProps = {
 };
 
 // Storage key
-const THEME_STORAGE_KEY = 'app_theme';
+const getUserThemeKey = (userId: string) => `user_theme_${userId}`;
+const GUEST_THEME_KEY = 'guest_theme';
 
 export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   const systemScheme = useColorScheme();
-  const [theme, setThemeState] = useState<Theme>(systemScheme || 'light');
-  const [isThemeLoading, setIsThemeLoading] = useState(true);
+  const [theme, setThemeState] = useState<Theme>('light');
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
-  // Effect to load saved theme from AsyncStorage on mount
-  useEffect(() => {
-    async function loadTheme() {
-      try {
-        const savedTheme = (await SecureStore.getItemAsync(THEME_STORAGE_KEY)) as Theme | null;
+  // Initialize theme based on user status
+  async function initializeUserTheme(userId: string | null) {
+    setCurrentUserId(userId);
+
+    try {
+      if (userId) {
+        // Logged in user - load their saved theme
+        const userThemeKey = getUserThemeKey(userId);
+        const savedTheme = (await SecureStore.getItemAsync(userThemeKey)) as Theme | null;
+
         if (savedTheme && (savedTheme === 'light' || savedTheme === 'dark')) {
           setThemeState(savedTheme);
         } else {
-          // If no saved theme, use the system preference
+          // No saved preference - use system preference
           setThemeState(systemScheme || 'light');
+          await SecureStore.setItemAsync(userThemeKey, systemScheme || 'light');
         }
-      } catch (error) {
-        console.error('Failed to load theme from storage:', error);
-        setThemeState(systemScheme || 'light'); // Fallback
-      } finally {
-        setIsThemeLoading(false);
+      } else {
+        // Guest user - always use light mode
+        setThemeState('light');
+        // Clear any guest theme preferences
+        await SecureStore.deleteItemAsync(GUEST_THEME_KEY).catch(() => {});
       }
+    } catch (error) {
+      console.error('Failed to initialize theme:', error);
+      setThemeState('light');
+    }
+  }
+
+  async function saveTheme(newTheme: Theme) {
+    try {
+      if (currentUserId) {
+        const userThemeKey = getUserThemeKey(currentUserId);
+        await SecureStore.setItemAsync(userThemeKey, newTheme);
+      }
+    } catch (error) {
+      console.error('Failed to save theme:', error);
+    }
+  }
+
+  function setTheme(newTheme: Theme) {
+    // Only allow theme changes for logged-in users
+    if (!currentUserId) {
+      console.warn('Theme changes are only available for logged-in users');
+      return;
     }
 
-    loadTheme();
-  }, [systemScheme]);
+    setThemeState(newTheme);
+    saveTheme(newTheme);
+  }
+
+  function toggleTheme() {
+    // Only allow theme toggle for logged-in users
+    if (!currentUserId) {
+      console.warn('Theme changes are only available for logged-in users');
+      return;
+    }
+
+    const newTheme = theme === 'light' ? 'dark' : 'light';
+    setTheme(newTheme);
+  }
 
   // Effect to listen to system theme changes
   useEffect(() => {
     const subscription = Appearance.addChangeListener(({ colorScheme }) => {
+      if (!currentUserId) return;
+
       (async () => {
         try {
-          const savedTheme = await SecureStore.getItemAsync(THEME_STORAGE_KEY);
+          const userThemeKey = getUserThemeKey(currentUserId);
+          const savedTheme = await SecureStore.getItemAsync(userThemeKey);
+
+          // Only apply system theme if user hasn't set a preference
           if (!savedTheme && colorScheme) {
             setThemeState(colorScheme);
           }
@@ -64,32 +111,13 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     });
 
     return () => subscription.remove();
-  }, []);
+  }, [currentUserId]);
 
-  async function saveTheme(newTheme: Theme) {
-    try {
-      await SecureStore.setItemAsync(THEME_STORAGE_KEY, newTheme);
-    } catch (error) {
-      console.error('Failed to save theme to storage:', error);
-    }
-  }
-
-  function setTheme(newTheme: Theme) {
-    setThemeState(newTheme);
-    saveTheme(newTheme);
-  }
-
-  function toggleTheme() {
-    const newTheme = theme === 'light' ? 'dark' : 'light';
-    setTheme(newTheme);
-  }
-
-  // Don't render children until the theme is loaded to avoid flicker
-  if (isThemeLoading) {
-    return null; // Or a loading spinner
-  }
-
-  return <ThemeContext.Provider value={{ theme, toggleTheme, setTheme }}>{children}</ThemeContext.Provider>;
+  return (
+    <ThemeContext.Provider value={{ theme, toggleTheme, setTheme, initializeUserTheme }}>
+      {children}
+    </ThemeContext.Provider>
+  );
 };
 
 // Custom hook to easily consume the theme context

@@ -1,13 +1,21 @@
-import { Resend } from 'resend';
+import nodemailer from 'nodemailer';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+const transporter = nodemailer.createTransport({
+  host: 'smtp.gmail.com',
+  port: 465,
+  secure: true,
+  auth: {
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASS,
+  },
+});
 
 export async function sendVerificationEmail(otpCode: string, email: string) {
   const otpDigits = otpCode.split('');
 
   try {
-    await resend.emails.send({
-      from: 'EduLite <onboarding@resend.dev>',
+    await transporter.sendMail({
+      from: `EduLite <${process.env.SMTP_USER}>`,
       to: email,
       subject: 'Verify your EduLite account',
       html: `
@@ -24,7 +32,6 @@ export async function sendVerificationEmail(otpCode: string, email: string) {
                 <td align="center">
                   <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="max-width: 600px; width: 100%; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
 
-                    <!-- Header -->
                     <tr>
                       <td style="background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%); padding: 48px 32px; text-align: center;">
                         <div style="width: 72px; height: 72px; background-color: #ffffff; border-radius: 50%; margin: 0 auto 16px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);">
@@ -38,7 +45,6 @@ export async function sendVerificationEmail(otpCode: string, email: string) {
                       </td>
                     </tr>
 
-                    <!-- Content -->
                     <tr>
                       <td style="padding: 48px 32px;">
                         <h2 style="color: #1e293b; font-size: 28px; font-weight: 600; margin: 0 0 12px 0; text-align: center;">Verify Your Email</h2>
@@ -50,7 +56,6 @@ export async function sendVerificationEmail(otpCode: string, email: string) {
                           Please use the verification code below to complete your registration:
                         </p>
 
-                        <!-- OTP Code -->
                         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
                           <tr>
                             <td align="center" style="padding: 0 0 32px 0;">
@@ -60,8 +65,8 @@ export async function sendVerificationEmail(otpCode: string, email: string) {
                                     .map(
                                       (digit) => `
                                     <td style="padding: 0 6px;">
-                                      <div style="width: 56px; height: 64px; background-color: #e3f2fd; border: 2px solid #1976d2; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
-                                        <span style="color: #1976d2; font-size: 32px; font-weight: 700; line-height: 64px; display: block; text-align: center;">${digit}</span>
+                                      <div style="width: 56px; height: 64px; background-color: #e3f2fd; border: 2px solid #1976d2; border-radius: 12px; text-align: center; line-height: 64px;">
+                                        <span style="color: #1976d2; font-size: 32px; font-weight: 700; font-family: Arial, 'Helvetica Neue', Helvetica, sans-serif; vertical-align: middle;">${digit}</span>
                                       </div>
                                     </td>
                                   `,
@@ -73,21 +78,18 @@ export async function sendVerificationEmail(otpCode: string, email: string) {
                           </tr>
                         </table>
 
-                        <!-- Expiry Notice -->
                         <div style="background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 16px; border-radius: 8px; margin-bottom: 24px;">
                           <p style="color: #856404; font-size: 14px; margin: 0; line-height: 1.5;">
                             <strong>⏰ Important:</strong> This code will expire in <strong>10 minutes</strong>. Please use it promptly.
                           </p>
                         </div>
 
-                        <!-- Info Box -->
                         <div style="background-color: #f1f5f9; border-radius: 12px; padding: 20px; margin-bottom: 24px;">
                           <p style="color: #64748b; font-size: 14px; margin: 0; line-height: 1.6; text-align: center;">
                             If you didn't request this code, please ignore this email or contact our support team at <a href="mailto:support@edulite.com" style="color: #1976d2; text-decoration: none; font-weight: 500;">support@edulite.com</a>
                           </p>
                         </div>
 
-                        <!-- Security Tips -->
                         <div style="border-top: 1px solid #e2e8f0; padding-top: 24px;">
                           <p style="color: #94a3b8; font-size: 13px; margin: 0 0 12px 0; text-align: center; font-weight: 500;">
                             🔒 Security Tips
@@ -101,7 +103,6 @@ export async function sendVerificationEmail(otpCode: string, email: string) {
                       </td>
                     </tr>
 
-                    <!-- Footer -->
                     <tr>
                       <td style="background-color: #f8fafc; padding: 32px; text-align: center; border-top: 1px solid #e2e8f0;">
                         <p style="color: #64748b; font-size: 14px; margin: 0 0 8px 0;">
@@ -111,7 +112,6 @@ export async function sendVerificationEmail(otpCode: string, email: string) {
                           © 2025 EduLite. All rights reserved.
                         </p>
 
-                        <!-- Social Links -->
                         <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center">
                           <tr>
                             <td style="padding: 0 8px;">
