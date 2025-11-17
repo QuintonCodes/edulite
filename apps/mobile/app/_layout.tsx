@@ -27,18 +27,18 @@ export default function RootLayout() {
       }),
   );
 
-  const [loaded] = useFonts({
+  const [loaded, fontError] = useFonts({
     Poppins: require('../assets/fonts/Poppins-SemiBold.ttf'),
     Poppins_Regular: require('../assets/fonts/Poppins-Regular.ttf'),
   });
 
   useEffect(() => {
-    if (loaded) {
+    if (loaded || fontError) {
       SplashScreen.hideAsync();
     }
-  }, [loaded]);
+  }, [loaded, fontError]);
 
-  if (!loaded) return null;
+  if (!loaded && !fontError) return null;
 
   return (
     <QueryClientProvider client={queryClient}>
