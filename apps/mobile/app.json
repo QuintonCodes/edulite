@@ -54,7 +54,8 @@
       "router": {},
       "eas": {
         "projectId": "110c043a-644e-4708-b991-040e4d4b4492"
-      }
+      },
+      "API_BASE": "https://edulite-backend-nu.vercel.app/api"
     }
   }
 }
